@@ -1,0 +1,47 @@
+name: Build Hold the Road
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      # Optional signing: add these four repository secrets to get a Play-ready bundle.
+      #   KEYSTORE_BASE64  (base64 of your upload keystore .jks)
+      #   KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+      - name: Restore keystore
+        if: env.HAS_KEY == 'true'
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/upload.jks
+
+      - name: Build debug APK and release bundle
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle assembleDebug bundleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HoldTheRoad-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HoldTheRoad-Play-Bundle
+          path: app/build/outputs/bundle/release/*.aab
