@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,3 +48,11 @@ jobs:
         with:
           name: HoldTheRoad-Play-Bundle
           path: app/build/outputs/bundle/release/*.aab
+
+      # Also publish the build outputs to the build-output branch so they can be fetched with plain git.
+      - name: Publish outputs to build-output branch
+        run: |
+          mkdir -p /tmp/out && cp app/build/outputs/apk/debug/*.apk app/build/outputs/bundle/release/*.aab /tmp/out/
+          cd /tmp/out && git init -q -b build-output && git add -A
+          git -c user.name="github-actions" -c user.email="actions@github.com" commit -q -m "Build ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" build-output
