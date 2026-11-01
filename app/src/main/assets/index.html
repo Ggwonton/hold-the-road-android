@@ -1075,9 +1075,12 @@ function inkProxy(g,th){
 /* Each tower (outline + body) is drawn into its own small image, refreshed every TC_N frames (staggered between
    towers, and at once when the tower changes); in between the image is reused. The firing squash is applied when the
    image is placed, so it stays smooth every frame. */
-let TC_F=0,TC_I=0;window.TC_N=window.TC_N||2;
+let TC_F=0,TC_I=0,TC_AUTO=2,TC_LAST=0,TC_EMA=16.7;window.TC_N=2;
+/* refresh towers every 2nd frame; if this phone falls behind, every 3rd or 4th; back to 2nd when it catches up */
+function tcTick(){const n=performance.now();if(TC_LAST){const d=Math.min(100,n-TC_LAST);TC_EMA+=(d-TC_EMA)*.05;
+  if(TC_EMA>19&&TC_AUTO<4&&TC_F%60===0){TC_AUTO++;TC_EMA=16.7;}else if(TC_EMA<17.2&&TC_AUTO>2&&TC_F%600===0)TC_AUTO--;}TC_LAST=n;}
 function drawTowerCached(g,t){
-  const N=(window.DBG&&DBG.tcn)||window.TC_N;
+  const N=(window.DBG&&DBG.tcn)||TC_AUTO;
   if(N<=1||t.built<1)return drawTowerStroke(g,t);
   const k=g.getTransform().a||1,w=Math.ceil(TBW*k),h=Math.ceil(TBH*k);
   const key=t.type+'|'+(t.branch||'')+'|'+(t.lvl||0)+'|'+(t.blvl||0)+'|'+(S&&S.menu&&S.menu.tower===t?1:0)+'|'+w;
@@ -3021,7 +3024,7 @@ function update(dt){
 }
 function drawBeams(g){for(const b of S.beams){g.save();g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(255,230,150,${b.t*3})`;g.lineWidth=3;g.beginPath();b.pts.forEach((p,i)=>{if(!i){g.moveTo(p[0],p[1]);return;}const q=b.pts[i-1];for(let k=1;k<=4;k++){const tt=k/4;g.lineTo(lerp(q[0],p[0],tt)+(k<4?(rand()-.5)*10:0),lerp(q[1],p[1],tt)+(k<4?(rand()-.5)*10:0));}});g.stroke();g.restore();}}
 function render(){
-  TC_F++;
+  TC_F++;tcTick();
   const k=cv.width/W;let sx=0,sy=0;if(S.shake>0&&!reduceMotion&&SAVE.shake){sx=(rand()-.5)*S.shake;sy=(rand()-.5)*S.shake;}
   ctx.setTransform(k,0,0,k,sx*k,sy*k);ctx.imageSmoothingQuality=DBG.smooth?'high':'low';
   if(DBG.layers){ctx.fillStyle='#4a6a2a';ctx.fillRect(0,0,W,H);}else ctx.drawImage(gpuOf(LV.terrain),0,0,W,H);if(!DBG.fx){ctx.drawImage(decal,0,0,W,H);
@@ -4431,7 +4434,7 @@ try{MON.on&&window.HTRNative.ready();}catch(e){}
   const _i=AU.init.bind(AU);AU.init=function(){const had=!!AU.c;_i();if(!had&&AU.c)log('audio on');};
   addEventListener('error',e=>log('JS error '+e.message+' @'+e.lineno));
   let fr=0,fps=0;const fl=t=>{fr++;requestAnimationFrame(fl);};requestAnimationFrame(fl);
-  setInterval(()=>{fps=fr;fr=0;if(FD)FD.textContent=fps+' fps';},1000);
+  setInterval(()=>{fps=fr;fr=0;if(FD)FD.textContent=fps+' fps'+(mode==='battle'?' · towers 1/'+TC_AUTO:'');},1000);
   let FD=null;if(/[?&]fps=1/.test(location.search)){FD=document.createElement('div');FD.style.cssText='position:fixed;left:6px;top:4px;z-index:9999;font:bold 14px sans-serif;color:#ff0;background:rgba(0,0,0,.6);padding:2px 6px;pointer-events:none';document.body.appendChild(FD);
     const bar=document.createElement('div');bar.style.cssText='position:fixed;left:90px;top:2px;z-index:9999;display:flex;gap:4px';
     [['ink','Plain towers'],['towers','No towers'],['foes','No enemies'],['fx','No effects'],['weather','No weather'],['layers','No map layers']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.style.cssText='font:bold 11px sans-serif;padding:3px 6px;background:#333;color:#fff;border:1px solid #999;border-radius:4px';
