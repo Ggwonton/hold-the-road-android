@@ -1072,8 +1072,33 @@ function inkProxy(g,th){
   INKP=new Proxy({},{get(_,k){if(k in fns)return fns[k];const v=INKG[k];return typeof v==='function'?v.bind(INKG):v;},set(_,k,v){INKG[k]=v;return true;}});
   return INKP;
 }
+/* Each tower (outline + body) is drawn into its own small image, refreshed every TC_N frames (staggered between
+   towers, and at once when the tower changes); in between the image is reused. The firing squash is applied when the
+   image is placed, so it stays smooth every frame. */
+let TC_F=0,TC_I=0;window.TC_N=window.TC_N||2;
+function drawTowerCached(g,t){
+  const N=(window.DBG&&DBG.tcn)||window.TC_N;
+  if(N<=1||t.built<1)return drawTowerStroke(g,t);
+  const k=g.getTransform().a||1,w=Math.ceil(TBW*k),h=Math.ceil(TBH*k);
+  const key=t.type+'|'+(t.branch||'')+'|'+(t.lvl||0)+'|'+(t.blvl||0)+'|'+(S&&S.menu&&S.menu.tower===t?1:0)+'|'+w;
+  if(t._ti===undefined)t._ti=TC_I++;
+  let c=t._tc;
+  if(!c||c.width!==w||c.height!==h){c=t._tc=gpuCanvas(w,h);c._g=c.getContext('2d');t._tk=null;}
+  if(t._tk!==key||((TC_F+t._ti)%N)===0){
+    const cg=c._g;cg.setTransform(1,0,0,1,0,0);cg.clearRect(0,0,w,h);cg.setTransform(k,0,0,k,(TAX-t.x)*k,(TAY-t.y)*k);
+    INKING=true;GLOWQ=[];
+    try{cg.save();drawTowerRaw(inkProxy(cg,2.1),t);cg.restore();GLOWQ=[];cg.save();drawTowerRaw(cg,t);cg.restore();}finally{INKING=false;}
+    t._tg=GLOWQ;t._tk=key;
+  }
+  const kk=Math.max(0,((t.anim||0)-.72)/.28),sxk=1+.04*kk,syk=1-.06*kk;
+  g.save();g.translate(t.x,t.y);g.scale(sxk,syk);g.translate(-t.x,-t.y);g.drawImage(c,t.x-TAX,t.y-TAY,TBW,TBH);g.restore();
+  if(t._tg)for(const q of t._tg)glow(g,q[0],q[1],q[2],q[3]);
+}
 function drawTowerInked(g,t){
   if(window.DBG&&DBG.oldink)return drawTowerInkedOld(g,t);
+  return drawTowerCached(g,t);
+}
+function drawTowerStroke(g,t){
   const kk=Math.max(0,((t.anim||0)-.72)/.28),sxk=1+.04*kk,syk=1-.06*kk;
   g.save();g.translate(t.x,t.y);g.scale(sxk,syk);g.translate(-t.x,-t.y);
   INKING=true;GLOWQ=[];
@@ -2996,6 +3021,7 @@ function update(dt){
 }
 function drawBeams(g){for(const b of S.beams){g.save();g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(255,230,150,${b.t*3})`;g.lineWidth=3;g.beginPath();b.pts.forEach((p,i)=>{if(!i){g.moveTo(p[0],p[1]);return;}const q=b.pts[i-1];for(let k=1;k<=4;k++){const tt=k/4;g.lineTo(lerp(q[0],p[0],tt)+(k<4?(rand()-.5)*10:0),lerp(q[1],p[1],tt)+(k<4?(rand()-.5)*10:0));}});g.stroke();g.restore();}}
 function render(){
+  TC_F++;
   const k=cv.width/W;let sx=0,sy=0;if(S.shake>0&&!reduceMotion&&SAVE.shake){sx=(rand()-.5)*S.shake;sy=(rand()-.5)*S.shake;}
   ctx.setTransform(k,0,0,k,sx*k,sy*k);ctx.imageSmoothingQuality=DBG.smooth?'high':'low';
   if(DBG.layers){ctx.fillStyle='#4a6a2a';ctx.fillRect(0,0,W,H);}else ctx.drawImage(gpuOf(LV.terrain),0,0,W,H);if(!DBG.fx){ctx.drawImage(decal,0,0,W,H);
