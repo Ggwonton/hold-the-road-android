@@ -10,15 +10,9 @@ android {
         applicationId "com.ashenlantern.holdtheroad"
         minSdk 24
         targetSdk 36
-        versionCode 5
+        versionCode 6
         versionName "1.1"
 
-        // AdMob ids: set ADMOB_APP_ID and ADMOB_INTERSTITIAL_ID in gradle.properties.
-        // Until then Google's official test ids are used, which only ever show test ads.
-        def admobApp = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
-        def admobInter = project.findProperty('ADMOB_INTERSTITIAL_ID') ?: 'ca-app-pub-3940256099942544/1033173712'
-        manifestPlaceholders = [admobAppId: admobApp]
-        buildConfigField 'String', 'ADMOB_INTERSTITIAL_ID', "\"${admobInter}\""
     }
 
     buildFeatures {
@@ -37,8 +31,18 @@ android {
         }
     }
 
+    // AdMob: release builds use the real ids from gradle.properties; debug builds always use
+    // Google's official test ids so nobody can click real ads during development.
+    def testApp = 'ca-app-pub-3940256099942544~3347511713'
+    def testInter = 'ca-app-pub-3940256099942544/1033173712'
     buildTypes {
+        debug {
+            manifestPlaceholders = [admobAppId: testApp]
+            buildConfigField 'String', 'ADMOB_INTERSTITIAL_ID', "\"${testInter}\""
+        }
         release {
+            manifestPlaceholders = [admobAppId: (project.findProperty('ADMOB_APP_ID') ?: testApp)]
+            buildConfigField 'String', 'ADMOB_INTERSTITIAL_ID', "\"${project.findProperty('ADMOB_INTERSTITIAL_ID') ?: testInter}\""
             minifyEnabled false
             if (file('upload.jks').exists()) signingConfig signingConfigs.release
         }
