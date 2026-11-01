@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
         final int gfx = getSharedPreferences("diag", 0).getInt("gfx", 0);
         App.mark(this, "onCreate" + (safe ? " (ads off)" : "") + (gfx > 0 && gfx < MODES.length ? " MODE: " + MODES[gfx] : ""));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
         App.mark(this, "WebView created");
         try { if (Build.VERSION.SDK_INT >= 26) { android.content.pm.PackageInfo wp = WebView.getCurrentWebViewPackage();
