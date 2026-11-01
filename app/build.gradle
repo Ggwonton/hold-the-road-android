@@ -10,7 +10,7 @@ android {
         applicationId "com.ashenlantern.holdtheroad"
         minSdk 24
         targetSdk 36
-        versionCode 4
+        versionCode 5
         versionName "1.1"
 
         // AdMob ids: set ADMOB_APP_ID and ADMOB_INTERSTITIAL_ID in gradle.properties.
