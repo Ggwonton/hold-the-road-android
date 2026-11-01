@@ -1092,7 +1092,7 @@ let TC_F=0,TC_I=0,TC_AUTO=2,TC_LAST=0,TC_EMA=16.7,TC_MAXR=3,TC_PICK=new Set();wi
 /* roughly how much drawing one tower picture takes (measured), so the per-frame budget is spent fairly */
 const TC_COST={archer:[1150,1450,1700,2270,880],barracks:[916,1200,1458,878,1103],chapel:[890,1300,1684,1063,860],trebuchet:[1091,1200,1304,1382,860]};
 function tcCost(t){const T=TC_COST[t.type]||[1500,1500,1500,1500,1500];return(t.branch?T[t.branch==='a'?3:4]:T[Math.min(2,t.lvl||0)])+(t.blvl?213:0);}
-function tcSchedule(){TC_PICK.clear();if(!S)return;const cand=[];if(window.DBG&&DBG.tcmax)TC_MAXR=DBG.tcmax;
+function tcSchedule(){TC_PICK.clear();if(!S)return;const cand=[];if(window.DBG&&DBG.tcmax){if(DBG.tcmax<0)return;TC_MAXR=DBG.tcmax;}
   for(const t of S.towers){if(!t._tc)continue;const an=(t.anim||0)>.02||(t.draw||0)>.02||(t.bell||0)>.05;const age=TC_F-(t._tf||0);
     if(age>=(an?2:6))cand.push([an?age*3:age,t]);}
   cand.sort((a,b)=>b[0]-a[0]);
@@ -1100,7 +1100,8 @@ function tcSchedule(){TC_PICK.clear();if(!S)return;const cand=[];if(window.DBG&&
 /* refresh towers every 2nd frame; if this phone falls behind, every 3rd or 4th; back to 2nd when it catches up */
 function tcTick(){const n=performance.now();if(TC_LAST){const d=Math.min(100,n-TC_LAST);TC_EMA+=(d-TC_EMA)*.05;
   if(TC_EMA>19&&TC_AUTO<4&&TC_F%60===0){TC_AUTO++;TC_EMA=16.7;}else if(TC_EMA<17.2&&TC_AUTO>2&&TC_F%600===0)TC_AUTO--;
-  if(TC_EMA>18.5&&TC_MAXR>1&&TC_F%45===0){TC_MAXR--;TC_EMA=16.7;}else if(TC_EMA<17.2&&TC_MAXR<5&&TC_F%300===0)TC_MAXR++;}TC_LAST=n;tcSchedule();}
+  const RE=window.REND_EMA||0;
+  if((TC_EMA>18.5||RE>10)&&TC_MAXR>1&&TC_F%30===0){TC_MAXR--;TC_EMA=16.7;}else if(TC_EMA<17.2&&RE<7&&TC_MAXR<4&&TC_F%240===0)TC_MAXR++;}TC_LAST=n;tcSchedule();}
 function drawTowerCached(g,t,deco){
   const N=(window.DBG&&DBG.tcn)||TC_AUTO;
   if(N<=1||t.built<1){if(deco)return false;return drawTowerStroke(g,t);}
@@ -2167,7 +2168,8 @@ function updateCorpses(dt){
   S.corpses=S.corpses.filter(c=>!c.gone);
 }
 
-function part(p){p.max=p.life;p.vx=p.vx||0;p.vy=p.vy||0;S.parts.push(p);if(S.parts.length>900)S.parts.shift();}
+/* no new sparks while paused (towers kept adding them every frame and they piled up), and at most 600 at once */
+function part(p){if(p.kind!=='text'&&(S.paused||S.parts.length>=600))return;p.max=p.life;p.vx=p.vx||0;p.vy=p.vy||0;S.parts.push(p);}
 function floatText(x,y,txt,col,life,size){S.parts.push({x,y,vx:0,vy:-26,life:life||1,max:life||1,txt,col,size:size||15,kind:'text'});}
 function updateParts(dt){for(const p of S.parts){p.life-=dt;if(p.g)p.vy+=p.g*dt;if(p.drag){p.vx*=1-Math.min(1,p.drag*dt);p.vy*=1-Math.min(1,p.drag*dt);}p.x+=p.vx*dt;p.y+=p.vy*dt;}S.parts=S.parts.filter(p=>p.life>0);}
 function splat(x,y,r,col){dg.save();dg.globalAlpha=.55;dg.fillStyle=col;for(let i=0;i<7;i++){const a=rand()*7,d=rand()*r;dg.beginPath();dg.ellipse(x+Math.cos(a)*d,y+Math.sin(a)*d*.5,r*(.3+rand()*.4),r*(.15+rand()*.2),0,0,7);dg.fill();}dg.restore();}
@@ -2620,19 +2622,26 @@ function drawProj(g){
   }
 }
 function drawBurns(g){for(const b of S.burns){const a=Math.min(1,b.t/.6);g.fillStyle=`rgba(30,18,8,${.45*a})`;g.beginPath();g.ellipse(b.x,b.y,b.r,b.r*.45,0,0,7);g.fill();glow(g,b.x,b.y,b.r*1.1,`rgba(255,110,30,${.32*a})`);}}
+/* round sparks and smoke are drawn from a small picture per colour (one call each) instead of building a circle every time */
+const DOTS=new Map();
+function dotSprite(col,sq){const key=(sq?'s':'c')+col;let c=DOTS.get(key);if(c)return c;
+  if(DOTS.size>200){for(const v of DOTS.values())v.width=v.height=0;DOTS.clear();}
+  c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d');x.fillStyle=col;if(sq)x.fillRect(0,0,32,32);else{x.beginPath();x.arc(16,16,15.6,0,7);x.fill();}DOTS.set(key,c);return c;}
 function drawParts(g,layer){
   const P=S.parts;
   if(layer===2){for(const p of P){if(p.kind!=='text')continue;const k=p.life/p.max;g.globalAlpha=Math.min(1,k*2);g.font=`${p.size}px "Lilita One",sans-serif`;g.textAlign='center';g.lineWidth=3.5;g.strokeStyle='rgba(0,0,0,.85)';g.strokeText(p.txt,p.x,p.y);g.fillStyle=p.col;g.fillText(p.txt,p.x,p.y);}g.globalAlpha=1;return;}
   if(layer!==1)return;
+  const oldAll=window.DBG&&DBG.oldparts;
   /* one pass per kind, so the drawing mode changes a few times a frame instead of twice per spark */
   let lit=false;
-  for(const p of P){const kd=p.kind;if(kd==='text')continue;const k=p.life/p.max;
+  for(const p of P){const kd=p.kind;if(kd==='text')continue;const k=p.life/p.max,old=oldAll||typeof p.col!=='string';
     if(kd==='glow'||kd==='flame'){lit=true;continue;}
-    if(kd==='smoke'){g.globalAlpha=k;g.fillStyle=p.col;g.beginPath();g.arc(p.x,p.y,p.size*(1.6-k*.6),0,7);g.fill();continue;}
+    if(kd==='smoke'){const r=p.size*(1.6-k*.6);g.globalAlpha=k;if(old){g.fillStyle=p.col;g.beginPath();g.arc(p.x,p.y,r,0,7);g.fill();}else g.drawImage(dotSprite(p.col),p.x-r,p.y-r,r*2,r*2);continue;}
     if(kd==='ring'){g.globalAlpha=k;g.strokeStyle=p.col;g.lineWidth=2;g.beginPath();g.ellipse(p.x,p.y,p.size*(1.4-k),p.size*.5*(1.4-k),0,0,7);g.stroke();continue;}
-    g.globalAlpha=Math.min(1,k*2);g.fillStyle=p.col;g.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);}
+    g.globalAlpha=Math.min(1,k*2);if(old){g.fillStyle=p.col;g.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);}else g.drawImage(dotSprite(p.col,1),p.x-p.size/2,p.y-p.size/2,p.size,p.size);}
   if(lit){g.globalCompositeOperation='lighter';
-    for(const p of P){const kd=p.kind;if(kd!=='glow'&&kd!=='flame')continue;const k=p.life/p.max;g.globalAlpha=k;g.fillStyle=p.col;g.beginPath();g.arc(p.x,p.y,Math.max(.1,p.size*(kd==='flame'?k:1)),0,7);g.fill();}
+    for(const p of P){const kd=p.kind;if(kd!=='glow'&&kd!=='flame')continue;const old=oldAll||typeof p.col!=='string';const k=p.life/p.max,r=Math.max(.1,p.size*(kd==='flame'?k:1));g.globalAlpha=k;
+      if(old){g.fillStyle=p.col;g.beginPath();g.arc(p.x,p.y,r,0,7);g.fill();}else g.drawImage(dotSprite(p.col),p.x-r,p.y-r,r*2,r*2);}
     g.globalCompositeOperation='source-over';}
   g.globalAlpha=1;
 }
@@ -4641,7 +4650,8 @@ function glowSprite(r,gr,b){const key=r+','+gr+','+b;let c=GLS.get(key);if(c)ret
   g.drawImage(c,p.x-36,p.y-26,c.width/R,c.height/R);};}
 
 /* hooks */
-{const _r=render;render=function(){FIGC.fr++;FIGC.budget=6;const R=cv.width/W;if(R!==FIGC.R)FIGC.R=R;if(FIGC.fr%30===0)figSweep();rscTick(performance.now());return _r.apply(this,arguments);};}
+window.REND_EMA=0;
+{const _r=render;render=function(){FIGC.fr++;FIGC.budget=6;const R=cv.width/W;if(R!==FIGC.R)FIGC.R=R;if(FIGC.fr%30===0)figSweep();const t0=performance.now();rscTick(t0);try{return _r.apply(this,arguments);}finally{const d=performance.now()-t0;REND_EMA+=(Math.min(40,d)-REND_EMA)*.05;}};}
 {const _sm=setMode;setMode=function(m){const was=mode;_sm.apply(this,arguments);if(m!=='battle'){figFreeAll();if(was==='battle'){RSC.noDown=false;RSC.trial=null;RSC.win=[];resize();}}};}
 {const _sl=startLevel;startLevel=function(){figFreeAll();RSC.trial=null;RSC.win=[];RSC.noDown=false;const r=_sl.apply(this,arguments);resize();return r;};}
 
