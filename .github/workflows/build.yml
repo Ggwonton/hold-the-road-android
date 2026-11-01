@@ -2,7 +2,7 @@ name: Build Hold the Road
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, test-noads ]
   workflow_dispatch:
 
 permissions:

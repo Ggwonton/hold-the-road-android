@@ -28,7 +28,6 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 public class MainActivity extends AppCompatActivity {
     private WebView web;
-    private Monetize monetize;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -96,16 +95,9 @@ public class MainActivity extends AppCompatActivity {
         }, "HTRLog");
         App.mark(this, "WebView set up");
         // Ads and purchases must never stop the game from starting.
-        if (!safe) try {
-            monetize = new Monetize(this, web);
-            web.addJavascriptInterface(monetize, "HTRNative");
-        } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
-        App.mark(this, monetize != null ? "ads object ready" : "ads skipped");
+        App.mark(this, "TEST BUILD: no ads SDK");
         web.loadUrl("file:///android_asset/index.html");
         App.mark(this, "page loading");
-        if (monetize != null) {
-            try { monetize.start(); App.mark(this, "ads started"); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
-        }
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> App.bootOk(this), 10000);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -190,7 +182,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if (monetize != null) monetize.destroy();
         if (web != null) web.destroy();
         super.onDestroy();
     }

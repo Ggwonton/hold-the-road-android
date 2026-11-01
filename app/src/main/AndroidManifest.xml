@@ -3,7 +3,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:name=".App"
@@ -13,9 +12,6 @@
         android:label="@string/app_name"
         android:hardwareAccelerated="true"
         android:theme="@style/Theme.HoldTheRoad">
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="${admobAppId}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
