@@ -771,6 +771,9 @@ body{background:#1c140c}
         <label class="srow" id="unlockRow"><span>Unlock every road<small>For testing the later maps</small></span><input class="tog" type="checkbox" id="optUnlock"></label>
         <div class="srow" id="adsRow" hidden><span>Remove ads<small id="adsTxt">One purchase, no more ads between battles</small></span><button class="btn2" id="adsBtn">Remove ads</button></div>
         <div class="srow" id="privRow" hidden><span>Ad privacy<small>Change your ad consent choices</small></span><button class="btn2" id="privBtn">Privacy options</button></div>
+        <label class="srow"><span>Show FPS<small>Frame rate counter in the corner</small></span><input class="tog" type="checkbox" id="optFps"></label>
+        <div class="srow" id="gfxRow" hidden><span>Graphics<small id="gfxTxt">Full graphics</small></span><button class="btn2" id="gfxBtn">Use full graphics</button></div>
+        <div class="srow" id="benchRow" hidden><span>Speed test<small>Plays a battle by itself and measures this phone</small></span><button class="btn2" id="benchBtn">Run test</button></div>
         <div class="srow"><span>The story<small>Watch the scenes you have unlocked</small></span><button class="btn2" id="storyBtn">Watch again</button></div>
         <div class="srow"><span>Progress<small id="progTxt"></small></span><button class="btn2" id="resetBtn">Erase progress</button></div>
         <div class="confirm" id="resetAsk" hidden>Erase every star? <button class="btn2" id="resetYes">Erase</button><button class="btn2 ghost" id="resetNo">Keep</button></div>
@@ -3048,7 +3051,11 @@ function render(){
   if(flashRed>0){ctx.fillStyle=`rgba(160,30,20,${flashRed*.35})`;ctx.fillRect(0,0,W,H);}
 }
 let last=performance.now();
+/* never draw more than 60 frames a second: phones with 90/120 Hz screens would otherwise do double the drawing work */
+let GFR=0,NEXTF=0;
 function frame(now){
+  if(NEXTF&&now<NEXTF-2.5){requestAnimationFrame(frame);return;}
+  NEXTF=(NEXTF&&now-NEXTF<16.7)?NEXTF+16.667:now+16.667;GFR++;
   const dt=Math.min(.05,(now-last)/1000);last=now;
   MUS.tick();
   if(mode==='battle'&&S&&LV){
@@ -3238,6 +3245,8 @@ function mapThumb(i){
     const q=pointAt(P,70),x=clamp(q.x,40,W-40),y=clamp(q.y,40,H-40);g.fillStyle=INK;g.beginPath();g.arc(x,y,30,0,7);g.fill();g.fillStyle='#c8302a';g.beginPath();g.arc(x,y,25,0,7);g.fill();g.save();g.translate(x,y+2);g.scale(1.5,1.5);drawSkull(g,0,0);g.restore();
   }
   g.restore();
+  /* the full-size level images were only needed for this thumbnail: free them now (phones run short of memory) */
+  if(mode!=='battle'){freeCv(L.terrain);freeCv(L.front);freeCv(L.shade);if(decal){decal.width=decal.height=0;}}
   THUMBS[i]=c;return c;
 }
 const FOE_CLASS={boss:['#ff6a4a','#a8201a','#ffd040'],elite:['#d08aff','#5a2a9a','#e8c8ff'],tough:['#e0b070','#7a4a20','#ffe0a0'],fast:['#9ae070','#2e7a20','#d8ffb0'],odd:['#8ac8ff','#2a5aa8','#d0ecff'],base:['#c8d8a0','#5a7a3a','#f0f8d8']};
@@ -4295,9 +4304,9 @@ function playStory(k,done){const D=STORY[k];if(!D){done&&done();return;}
   AU.play('toll',.6);requestAnimationFrame(storyFrame);}
 function showStoryLine(){const D=STORY[STO.k],p=STO.el.querySelector('.stext');p.classList.remove('in');void p.offsetWidth;p.textContent=D.lines[STO.i];p.classList.add('in');
   STO.el.querySelector('.snext').textContent=STO.i===D.lines.length-1?'Tap to close':'Tap to continue';}
-function endStory(){if(!STO)return;SAVE.story=SAVE.story||{};SAVE.story[STO.k]=1;writeSave();const el=STO.el,dn=STO.done;el.classList.add('out');STO=null;setTimeout(()=>{el.hidden=true;dn&&dn();},500);}
+function endStory(){if(!STO)return;SAVE.story=SAVE.story||{};SAVE.story[STO.k]=1;writeSave();const el=STO.el,dn=STO.done;el.classList.add('out');STO=null;setTimeout(()=>{if(!STO)el.hidden=true;dn&&dn();},500);}
 function storyFrame(now){if(!STO)return;const dt=Math.min(.05,(now-STO.last)/1000);STO.last=now;STO.t+=dt;
-  const c=$('storyCv'),d=Math.min(2,window.devicePixelRatio||1),w=c.clientWidth,h=c.clientHeight;if(c.width!==Math.round(w*d)){c.width=w*d;c.height=h*d;}
+  const c=$('storyCv'),d=Math.min(2,window.devicePixelRatio||1),w=c.clientWidth,h=c.clientHeight;if(!w||!h){requestAnimationFrame(storyFrame);return;}if(c.width!==Math.round(w*d)){c.width=w*d;c.height=h*d;}
   const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);drawStoryScene(g,STO.k,STO.t,w,h);requestAnimationFrame(storyFrame);}
 /* figures in silhouette: every colour is mapped to a dark grey of its brightness (was a canvas filter, far too slow on phones) */
 const DARKC=new Map();let DARKG=null;
@@ -4424,6 +4433,15 @@ try{MON.on&&window.HTRNative.ready();}catch(e){}
 
 
 /* ================= START-UP DIAGNOSTICS (Android) ================= */
+/* frame-rate counter: game frames drawn per second, and the screen's own rate */
+let FPSN=null;
+function fpsShow(on){if(!on){if(FPSN){FPSN.remove();FPSN=null;}return;}if(FPSN)return;
+  FPSN=document.createElement('div');FPSN.style.cssText='position:fixed;left:6px;top:4px;z-index:9999;font:bold 13px sans-serif;color:#ff0;background:rgba(0,0,0,.6);padding:2px 6px;border-radius:4px;pointer-events:none';document.body.appendChild(FPSN);
+  let g0=GFR,r=0,t0=performance.now();const rl=()=>{r++;if(FPSN)requestAnimationFrame(rl);};requestAnimationFrame(rl);
+  const tick=()=>{if(!FPSN)return;const t=performance.now(),s=(t-t0)/1000;const f=Math.round((GFR-g0)/s),hz=Math.round(r/s);g0=GFR;r=0;t0=t;
+    let gm='';try{const m=window.HTRLog&&HTRLog.gfx?HTRLog.gfx():0;gm=m?' · SAFE GRAPHICS '+m:'';}catch(e){}
+    FPSN.textContent=f+' fps · screen '+hz+' Hz'+(mode==='battle'?' · towers 1/'+TC_AUTO:'')+gm;setTimeout(tick,1000);};setTimeout(tick,1000);}
+if(SAVE.fps)setTimeout(()=>fpsShow(true),500);
 (function(){const L=window.HTRLog;if(!L)return;const log=m=>{try{L.log(String(m).slice(0,200));}catch(e){}};
   log('js ready'+(window.__LOWGFX?' ['+window.__LOWGFX+']':'')+', dpr '+(window.devicePixelRatio||1)+', screen '+innerWidth+'x'+innerHeight);
   {const _sm=setMode;setMode=function(m){log('mode '+m);return _sm.apply(this,arguments);};}
@@ -4433,18 +4451,17 @@ try{MON.on&&window.HTRNative.ready();}catch(e){}
   if(typeof openBrief==='function'){const _b=openBrief;openBrief=function(i){log('brief '+i);return _b.apply(this,arguments);};}
   const _i=AU.init.bind(AU);AU.init=function(){const had=!!AU.c;_i();if(!had&&AU.c)log('audio on');};
   addEventListener('error',e=>log('JS error '+e.message+' @'+e.lineno));
-  let fr=0,fps=0;const fl=t=>{fr++;requestAnimationFrame(fl);};requestAnimationFrame(fl);
-  setInterval(()=>{fps=fr;fr=0;if(FD)FD.textContent=fps+' fps'+(mode==='battle'?' · towers 1/'+TC_AUTO:'');},1000);
-  let FD=null;if(/[?&]fps=1/.test(location.search)){FD=document.createElement('div');FD.style.cssText='position:fixed;left:6px;top:4px;z-index:9999;font:bold 14px sans-serif;color:#ff0;background:rgba(0,0,0,.6);padding:2px 6px;pointer-events:none';document.body.appendChild(FD);
+  let fps=0;{let g=GFR;setInterval(()=>{fps=GFR-g;g=GFR;},1000);}
+  let FD=null;if(/[?&]fps=1/.test(location.search)){fpsShow(true);
     const bar=document.createElement('div');bar.style.cssText='position:fixed;left:90px;top:2px;z-index:9999;display:flex;gap:4px';
     [['ink','Plain towers'],['towers','No towers'],['foes','No enemies'],['fx','No effects'],['weather','No weather'],['layers','No map layers']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.style.cssText='font:bold 11px sans-serif;padding:3px 6px;background:#333;color:#fff;border:1px solid #999;border-radius:4px';
       b.onclick=e=>{e.stopPropagation();DBG[k]=!DBG[k];b.style.background=DBG[k]?'#a33':'#333';log('toggle '+k+' '+DBG[k]);};bar.appendChild(b);});
     document.body.appendChild(bar);}
   if(/[?&]bench=1/.test(location.search))setTimeout(runBench,1500);
+  window.runBench=runBench;
   async function runBench(){
     const wait=ms=>new Promise(r=>setTimeout(r,ms)),rows=[],t0=Date.now();
-    const meas=ms=>new Promise(res=>{const ts=[];const f=t=>{ts.push(t);if(t-ts[0]<ms)requestAnimationFrame(f);else{const d=[];for(let i=1;i<ts.length;i++)d.push(ts[i]-ts[i-1]);d.sort((a,b)=>a-b);
-      res((ts.length-1)/((ts[ts.length-1]-ts[0])/1000));}};requestAnimationFrame(f);});
+    const meas=ms=>new Promise(res=>{const g0=GFR,t0=performance.now();setTimeout(()=>res((GFR-g0)/((performance.now()-t0)/1000)),ms);});
     const box=document.createElement('div');box.style.cssText='position:fixed;right:6px;top:4px;z-index:10000;font:bold 13px monospace;color:#fff;background:rgba(0,0,0,.8);padding:6px 9px;border-radius:6px;white-space:pre;pointer-events:none';document.body.appendChild(box);
     const show=s=>{box.textContent='FPS TEST\n'+rows.join('\n')+(s?'\n> '+s:'');};
     const step=async(name,ms)=>{show(name+'...');await wait(500);const f=await meas(ms||2500);rows.push((name+'                        ').slice(0,24)+f.toFixed(1)+' fps');show('');log('bench '+name+' '+f.toFixed(1));};
@@ -4467,7 +4484,7 @@ try{MON.on&&window.HTRNative.ready();}catch(e){}
       clear();for(const d of [1.75,1.5,1.25,1]){setDpr(d);await wait(300);await step('battle at '+d+'x');}
       setDpr(real);clearInterval(kt);clearInterval(ks);
     }catch(e){rows.push('ERROR '+e.message);}
-    rows.push('took '+Math.round((Date.now()-t0)/1000)+'s, screen dpr '+real);
+    let gm=0;try{gm=L.gfx?L.gfx():0;}catch(e){}rows.push('took '+Math.round((Date.now()-t0)/1000)+'s, dpr '+real+', graphics mode '+gm+', '+innerWidth+'x'+innerHeight+(window.__LOWGFX?' ['+__LOWGFX+']':''));
     show('');const res=rows.join('\n');log('bench done');
     box.style.pointerEvents='auto';const b=document.createElement('button');b.textContent='Copy results';b.style.cssText='display:block;margin-top:6px;font:bold 14px sans-serif;padding:6px 12px';
     b.onclick=e=>{e.stopPropagation();try{L.copy(res);b.textContent='Copied';}catch(er){b.textContent='Copy failed';}};box.appendChild(b);
@@ -4475,6 +4492,14 @@ try{MON.on&&window.HTRNative.ready();}catch(e){}
   }
   let n=0;const beat=()=>{n++;log('alive '+n+'s '+fps+'fps mode '+(typeof mode!=='undefined'?mode:'?')+(window.STO?' story':''));if(n<12)setTimeout(beat,1000);};setTimeout(beat,1000);
 })();
+/* settings: FPS counter, graphics mode (Android), speed test (Android) */
+{const _o=openSettings;openSettings=function(){_o.apply(this,arguments);try{$('optFps').checked=!!SAVE.fps;
+  const A=window.HTRLog,gm=(A&&A.gfx)?A.gfx():0;$('gfxRow').hidden=!(A&&A.gfx);
+  $('gfxTxt').textContent=gm?'Safe graphics are on (slower). They switched on after the game closed unexpectedly.':'Full graphics';$('gfxBtn').hidden=!gm;
+  $('benchRow').hidden=!(A&&A.copy&&window.runBench);}catch(e){}};}
+$('optFps').onchange=e=>{SAVE.fps=e.target.checked;writeSave();fpsShow(SAVE.fps);};
+$('gfxBtn').onclick=()=>{try{HTRLog.setGfx(0);}catch(e){}};
+$('benchBtn').onclick=()=>{document.querySelectorAll('.veil').forEach(v=>v.hidden=true);if(window.runBench)runBench();};
 
 })();
 </script>

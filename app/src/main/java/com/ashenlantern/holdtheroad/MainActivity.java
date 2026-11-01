@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         web.setBackgroundColor(0xFF000000);
         setContentView(web);
         hideSystemBars();
+        lockTo60Hz();
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -117,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
         });
         web.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface public void log(String m) { App.mark(MainActivity.this, "game: " + m); }
+            @android.webkit.JavascriptInterface public int gfx() { return getSharedPreferences("diag", 0).getInt("gfx", 0); }
+            @android.webkit.JavascriptInterface public void setGfx(int m) {
+                getSharedPreferences("diag", 0).edit().putInt("gfx", m).apply();
+                runOnUiThread(() -> { picked = true; App.bootOk(MainActivity.this); recreate(); }); }
             @android.webkit.JavascriptInterface public void copy(String t) { runOnUiThread(() -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road FPS test", t));
@@ -188,6 +193,24 @@ public class MainActivity extends AppCompatActivity {
         sv.addView(tv);
         col.addView(sv, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
         setContentView(col);
+    }
+
+    /** Phones with 90/120 Hz screens: ask for the 60 Hz mode, so the game isn't asked to draw twice as often. */
+    private void lockTo60Hz() {
+        try {
+            android.view.Display d = getWindowManager().getDefaultDisplay();
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.preferredRefreshRate = 60f;
+            if (Build.VERSION.SDK_INT >= 23) {
+                android.view.Display.Mode cur = d.getMode(), best = null;
+                for (android.view.Display.Mode m : d.getSupportedModes())
+                    if (m.getPhysicalWidth() == cur.getPhysicalWidth() && m.getPhysicalHeight() == cur.getPhysicalHeight()
+                            && Math.abs(m.getRefreshRate() - 60f) < 1.5f) best = m;
+                if (best != null) lp.preferredDisplayModeId = best.getModeId();
+                App.mark(this, "display " + cur.getRefreshRate() + " Hz -> " + (best != null ? best.getRefreshRate() + " Hz mode" : "no 60 Hz mode"));
+            }
+            getWindow().setAttributes(lp);
+        } catch (Throwable t) { App.mark(this, "60 Hz lock failed: " + t); }
     }
 
     private void hideSystemBars() {
