@@ -34,8 +34,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // If the last run died during start-up, show what happened instead of starting the game again.
+        String problem = App.previousRunProblem(this);
+        if (problem != null) { showReport(problem); return; }
+        App.startBoot(this);
+        final boolean safe = getSharedPreferences("diag", 0).getBoolean("noAds", false);
+        App.mark(this, "onCreate" + (safe ? " (ads off)" : ""));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         web = new WebView(this);
+        App.mark(this, "WebView created");
         web.setBackgroundColor(0xFF000000);
         setContentView(web);
         hideSystemBars();
@@ -53,7 +60,15 @@ public class MainActivity extends AppCompatActivity {
         web.setOverScrollMode(View.OVER_SCROLL_NEVER);
         web.setVerticalScrollBarEnabled(false);
         web.setHorizontalScrollBarEnabled(false);
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            int logged = 0;
+            @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage m) {
+                if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR && logged++ < 12)
+                    App.mark(MainActivity.this, "JS error: " + m.message() + " (line " + m.lineNumber() + ")");
+                return false;
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -65,17 +80,30 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return false;
             }
+            @Override
+            public void onPageFinished(WebView view, String url) { App.mark(MainActivity.this, "page loaded"); }
+            @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                // The WebView's drawing process died (usually out of memory). Record it and restart cleanly instead of closing.
+                App.mark(MainActivity.this, "WebView renderer died" + (Build.VERSION.SDK_INT >= 26 && detail.didCrash() ? " (crashed)" : " (killed for memory)"));
+                if (web != null) { ((android.view.ViewGroup) web.getParent()).removeView(web); web.destroy(); web = null; }
+                recreate();
+                return true;
+            }
         });
+        App.mark(this, "WebView set up");
         // Ads and purchases must never stop the game from starting.
-        try {
+        if (!safe) try {
             monetize = new Monetize(this, web);
             web.addJavascriptInterface(monetize, "HTRNative");
         } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
+        App.mark(this, monetize != null ? "ads object ready" : "ads skipped");
         web.loadUrl("file:///android_asset/index.html");
+        App.mark(this, "page loading");
         if (monetize != null) {
-            try { monetize.start(); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
+            try { monetize.start(); App.mark(this, "ads started"); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
         }
-        showLastCrash();
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> App.bootOk(this), 10000);
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -87,32 +115,43 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /** If the last run crashed (or ads failed), show what happened so it can be sent to the developer. */
-    private void showLastCrash() {
-        try {
-            File f = new File(getFilesDir(), App.CRASH_FILE);
-            if (!f.exists()) return;
-            ByteArrayOutputStream bo = new ByteArrayOutputStream();
-            try (FileInputStream in = new FileInputStream(f)) { byte[] b = new byte[4096]; int n; while ((n = in.read(b)) > 0) bo.write(b, 0, n); }
-            final String text = bo.toString("UTF-8");
-            f.delete();
-            TextView tv = new TextView(this);
-            tv.setText(text);
-            tv.setTextSize(11);
-            tv.setTextIsSelectable(true);
-            tv.setPadding(40, 24, 40, 24);
-            android.widget.ScrollView sv = new android.widget.ScrollView(this);
-            sv.addView(tv);
-            new AlertDialog.Builder(this)
-                    .setTitle("Something went wrong last time")
-                    .setView(sv)
-                    .setPositiveButton("Copy report", (d, w) -> {
-                        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                        if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road crash", text));
-                    })
-                    .setNegativeButton("Close", null)
-                    .show();
-        } catch (Throwable ignored) { }
+    /** Plain report screen (no WebView, no ads) shown after a failed start. */
+    private void showReport(final String text) {
+        android.widget.LinearLayout col = new android.widget.LinearLayout(this);
+        col.setOrientation(android.widget.LinearLayout.VERTICAL);
+        col.setBackgroundColor(0xFF1C0F0C);
+        col.setPadding(48, 36, 48, 36);
+        TextView title = new TextView(this);
+        title.setText("Hold the Road closed last time. Please send this report to the developer.");
+        title.setTextColor(0xFFF6E7C4); title.setTextSize(16);
+        col.addView(title);
+        android.widget.LinearLayout row = new android.widget.LinearLayout(this);
+        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        String[] labels = {"Copy report", "Try again", "Try without ads"};
+        for (int k = 0; k < 3; k++) {
+            android.widget.Button b = new android.widget.Button(this);
+            b.setText(labels[k]);
+            final int which = k;
+            b.setOnClickListener(v -> {
+                if (which == 0) {
+                    ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                    if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road report", text));
+                    android.widget.Toast.makeText(this, "Report copied", android.widget.Toast.LENGTH_SHORT).show();
+                } else {
+                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", which == 2).apply();
+                    App.bootOk(this);
+                    recreate();
+                }
+            });
+            row.addView(b);
+        }
+        col.addView(row);
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        TextView tv = new TextView(this);
+        tv.setText(text); tv.setTextColor(0xFFE8DCC0); tv.setTextSize(11); tv.setTextIsSelectable(true);
+        sv.addView(tv);
+        col.addView(sv, new android.widget.LinearLayout.LayoutParams(-1, 0, 1f));
+        setContentView(col);
     }
 
     private void hideSystemBars() {
