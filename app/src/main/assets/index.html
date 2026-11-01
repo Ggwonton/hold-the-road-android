@@ -3961,9 +3961,10 @@ function tutTick(dt){if(!TUT.on||!S||mode!=='battle'){if(TUT.el&&!TUT.on)TUT.el.
   if(S.over){tutEnd();return;}
   if(S.paused||!$('setV').hidden){TUT.el.hidden=true;return;}
   const st=TUT_STEPS[TUT.step];if(!st){tutEnd();return;}
+  /* a step the player has already done counts at once, even if its 'wait' condition no longer holds (e.g. they upgraded early and spent the gold) */
+  if(st.done()){TUT.step++;TUT.t=0;TUT.last='';AU.play('chime',.4);return;}
   if(st.wait&&!st.wait()){TUT.el.hidden=true;return;}
   TUT.t+=dt;
-  if(st.done()){TUT.step++;TUT.t=0;TUT.last='';AU.play('chime',.4);return;}
   const at=st.at();if(!at){TUT.el.hidden=true;return;}
   TUT.el.hidden=false;
   if(TUT.last!==st.txt){TUT.el.querySelector('.ctxt').innerHTML=st.txt;TUT.last=st.txt;TUT.el.classList.remove('pop');void TUT.el.offsetWidth;TUT.el.classList.add('pop');}
