@@ -4044,7 +4044,7 @@ const MODES={
   endless:{n:'Endless',d:'The waves never stop. How long can you hold?'}
 };
 const IRON_T=[['archer','barracks'],['barracks','trebuchet'],['chapel','barracks'],['archer','chapel']];
-const IRON_PAIR={12:['archer','chapel'],16:['chapel','barracks']}; /* Lust and Heresy are thick with shades and risen: they need holy fire, not just arrows and pikes */
+const IRON_PAIR={9:['chapel','barracks'],12:['archer','chapel'],16:['chapel','barracks']}; /* the Deep Mine's trolls, and the shades and risen of Lust and Heresy, need holy fire, not just arrows, pikes and stones */
 const IRON_ROAD={4:.7,8:.72,9:.6,12:.72,13:.78,15:.5,16:.6,18:.5,19:.45}; /* how big the Iron column is on each road (Deep Mine, Wrath, Heresy and the King's Lair were out of reach) */
 function ironTowers(i){return IRON_PAIR[i]||IRON_T[i%4];}
 function ensureModeSave(){for(const k of['heroic','iron'])if(!Array.isArray(SAVE[k])||SAVE[k].length!==20)SAVE[k]=Array(20).fill(0);if(!Array.isArray(SAVE.endless)||SAVE.endless.length!==20)SAVE.endless=Array(20).fill(0);}
