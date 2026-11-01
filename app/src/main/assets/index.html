@@ -881,7 +881,7 @@ function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSO
   SAVE.stars=SAVE.stars.map(v=>{v=Math.round(+v);return isFinite(v)?Math.max(0,Math.min(3,v)):0;});}
 function writeSave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE));}catch(e){}}
 function unlocked(i){return i===0||SAVE.unlockAll||SAVE.stars[i-1]>0;}
-function applyVolumes(){if(AU.out)AU.out.gain.value=SAVE.sfx*.75;if(AU.mus)AU.mus.gain.value=SAVE.music*.55;}
+function applyVolumes(){if(AU.out)AU.out.gain.value=SAVE.sfx*.75;if(AU.mus)AU.mus.gain.value=AU.on?SAVE.music*.55:0;}
 
 const AU={c:null,out:null,nb:null,on:true,last:{},
   init(){if(this.c)return;try{const C=window.AudioContext||window.webkitAudioContext;this.c=new C();const comp=this.c.createDynamicsCompressor();this.out=this.c.createGain();this.out.gain.value=.6;this.out.connect(comp);comp.connect(this.c.destination);this.mus=this.c.createGain();this.mus.gain.value=.3;this.mus.connect(comp);
@@ -3129,12 +3129,12 @@ function endGame(win){
   if(win&&md==='campaign'){SAVE.stars[i]=Math.max(SAVE.stars[i],stars);}
   const unlockedSpells=roadsDone()>roadsBefore?newSpellsAt(roadsDone()):[];
   if(win&&(md==='heroic'||md==='iron')){firstBonus=!SAVE[md][i];SAVE[md][i]=1;}
-  if(md==='endless'){SAVE.endless[i]=Math.max(SAVE.endless[i]||0,S.wave-1);}
+  const endPrev=md==='endless'?(SAVE.endless[i]||0):0;if(md==='endless'){SAVE.endless[i]=Math.max(SAVE.endless[i]||0,S.wave-1);}
   writeSave();
   $('endScreen').classList.toggle('lose',!win&&md!=='endless');
   if(md==='endless'){
     $('endEyebrow').textContent=LV.M.name+' · Endless';$('endTitle').textContent='Held for '+(S.wave-1)+' waves';
-    $('endText').textContent=(S.wave-1>=SAVE.endless[i]?'A new best for this road. ':'Best on this road: wave '+SAVE.endless[i]+'. ')+'The dead always come back. So do you.';
+    $('endText').textContent=(S.wave-1>endPrev?'A new best for this road. ':S.wave-1===endPrev&&endPrev>0?'You matched your best on this road. ':'Best on this road: wave '+SAVE.endless[i]+'. ')+'The dead always come back. So do you.';
     $('endStars').innerHTML='';$('endAgain').textContent='Go again';AU.play('chime');setTimeout(()=>{$('endScreen').hidden=false;},800);return;}
   const tag=md==='campaign'?'':' · '+MODES[md].n;
   $('endEyebrow').textContent=(win?LV.M.name+' holds':LV.M.name+' is lost')+tag;
@@ -3226,7 +3226,7 @@ $('resume').onclick=()=>{S.paused=false;$('pauseScreen').hidden=true;};
 $('restart').onclick=()=>{$('pauseScreen').hidden=true;const i=S.mi;wipeTo(()=>startLevel(i));};
 $('quitMap').onclick=()=>{$('pauseScreen').hidden=true;wipeTo(()=>setMode('map'));};
 $('endAgain').onclick=()=>{const i=S.mi,md=LV.mode;wipeTo(()=>{$('endScreen').hidden=true;startLevel(i,md);});};
-$('endMap').onclick=()=>{const i=S.mi;wipeTo(()=>{$('endScreen').hidden=true;setMode('map');});const nx=Math.min(19,i+1);if(unlocked(nx)&&SAVE.stars[nx]===0)setTimeout(()=>openBrief(nx),900);};
+$('endMap').onclick=()=>{const i=S.mi;wipeTo(()=>{$('endScreen').hidden=true;setMode('map');});const nx=Math.min(19,i+1);if(unlocked(nx)&&SAVE.stars[nx]===0)setTimeout(()=>{if(mode==='map'&&$('brief').hidden)openBrief(nx);},900);};
 document.querySelectorAll('.rmlink,.rmsplash').forEach(a=>a.addEventListener('click',e=>{e.stopPropagation();AU.play&&AU.play('click');if(window.__ANDROID__){e.preventDefault();location.href=a.href;}}));
 $('splash').onclick=()=>{AU.init();if(AU.c&&AU.c.state==='suspended')AU.c.resume();applyVolumes();$('splash').hidden=true;setMode('map');AU.play('bell',.6);};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('setV').hidden){$('setV').hidden=true;return;}if(!$('bestV').hidden){$('bestV').hidden=true;return;}if(S){if(S.ability)S.ability=null;else S.menu=null;}else{$('brief').hidden=true;WM.sel=-1;}}
@@ -3245,7 +3245,7 @@ $('openUp').onclick=()=>{upSel=null;openUpgrades();};$('upClose').onclick=()=>{$
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{freeCv(worldBG);worldBG=null;});
 requestAnimationFrame(frame);
 
-function wipeTo(fn){const w=$('wipe');w.classList.add('on');setTimeout(()=>{try{fn();}finally{setTimeout(()=>w.classList.remove('on'),140);}},reduceMotion?60:520);}
+let WIPING=false;function wipeTo(fn){if(WIPING)return;WIPING=true;const w=$('wipe');w.classList.add('on');setTimeout(()=>{WIPING=false;try{fn();}finally{setTimeout(()=>w.classList.remove('on'),140);}},reduceMotion?60:520);}
 
 
 /* ================= ROAD BRIEFING ================= */
