@@ -65,22 +65,18 @@ public class App extends Application {
         StringBuilder sb = new StringBuilder("Why Android ended the last runs:\n");
         try {
             android.app.ActivityManager am = (android.app.ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);
-            java.util.List<android.app.ApplicationExitInfo> list = am.getHistoricalProcessExitReasons(c.getPackageName(), 0, 3);
+            java.util.List<android.app.ApplicationExitInfo> list = am.getHistoricalProcessExitReasons(c.getPackageName(), 0, 2);
             for (android.app.ApplicationExitInfo x : list) {
                 sb.append(String.format(java.util.Locale.US, "- %tT reason=%d status=%d imp=%d pss=%dMB rss=%dMB  %s%n",
                         x.getTimestamp(), x.getReason(), x.getStatus(), x.getImportance(), x.getPss() / 1024, x.getRss() / 1024, x.getDescription()));
                 if (x.getReason() == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE || x.getReason() == android.app.ApplicationExitInfo.REASON_ANR) {
                     try (java.io.InputStream in = x.getTraceInputStream()) {
                         if (in != null) {
-                            byte[] b = new byte[60000]; int n = 0, r;
-                            while (n < b.length && (r = in.read(b, n, b.length - n)) > 0) n += r;
-                            // keep the readable parts (tombstones are protobuf on newer Android)
-                            StringBuilder t = new StringBuilder(); int run = 0; StringBuilder cur = new StringBuilder();
-                            for (int i = 0; i < n; i++) { int ch = b[i] & 0xff;
-                                if (ch >= 32 && ch < 127) { cur.append((char) ch); }
-                                else { if (cur.length() >= 5) t.append(cur).append(' '); cur.setLength(0); }
-                                if (t.length() > 2500) break; }
-                            sb.append("  trace: ").append(t).append("\n");
+                            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream(); byte[] buf = new byte[65536]; int r;
+                            while ((r = in.read(buf)) > 0 && bo.size() < 8_000_000) bo.write(buf, 0, r);
+                            byte[] b = bo.toByteArray();
+                            if (x.getReason() == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE) sb.append(Tomb.decode(b, b.length));
+                            else { String s = new String(b, 0, Math.min(b.length, 6000), "UTF-8"); sb.append("  trace: ").append(s).append("\n"); }
                         }
                     } catch (Throwable ignored) { }
                 }

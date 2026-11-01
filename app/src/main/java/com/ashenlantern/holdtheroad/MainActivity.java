@@ -39,10 +39,14 @@ public class MainActivity extends AppCompatActivity {
         if (problem != null) { showReport(problem); return; }
         App.startBoot(this);
         final boolean safe = getSharedPreferences("diag", 0).getBoolean("noAds", false);
-        App.mark(this, "onCreate" + (safe ? " (ads off)" : ""));
+        final int gfx = getSharedPreferences("diag", 0).getInt("gfx", 0);
+        App.mark(this, "onCreate" + (safe ? " (ads off)" : "") + (gfx == 1 ? " SIMPLE GRAPHICS" : gfx == 2 ? " SOFTWARE DRAWING" : ""));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         web = new WebView(this);
         App.mark(this, "WebView created");
+        try { if (Build.VERSION.SDK_INT >= 26) { android.content.pm.PackageInfo wp = WebView.getCurrentWebViewPackage();
+            if (wp != null) App.mark(this, "WebView " + wp.packageName + " " + wp.versionName); } } catch (Throwable ignored) { }
+        if (gfx == 2) web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         web.setBackgroundColor(0xFF000000);
         setContentView(web);
         hideSystemBars();
@@ -101,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
             web.addJavascriptInterface(monetize, "HTRNative");
         } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
         App.mark(this, monetize != null ? "ads object ready" : "ads skipped");
-        web.loadUrl("file:///android_asset/index.html");
+        web.loadUrl("file:///android_asset/index.html" + (gfx == 1 ? "?gfx=1" : ""));
         App.mark(this, "page loading");
         if (monetize != null) {
             try { monetize.start(); App.mark(this, "ads started"); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
@@ -130,8 +134,8 @@ public class MainActivity extends AppCompatActivity {
         col.addView(title);
         android.widget.LinearLayout row = new android.widget.LinearLayout(this);
         row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        String[] labels = {"Copy report", "Try again", "Try without ads"};
-        for (int k = 0; k < 3; k++) {
+        String[] labels = {"Copy report", "Try again", "Simple graphics", "Software drawing"};
+        for (int k = 0; k < 4; k++) {
             android.widget.Button b = new android.widget.Button(this);
             b.setText(labels[k]);
             final int which = k;
@@ -141,7 +145,7 @@ public class MainActivity extends AppCompatActivity {
                     if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road report", text));
                     android.widget.Toast.makeText(this, "Report copied", android.widget.Toast.LENGTH_SHORT).show();
                 } else {
-                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", which == 2).apply();
+                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", false).putInt("gfx", which - 1).apply();
                     App.bootOk(this);
                     recreate();
                 }
