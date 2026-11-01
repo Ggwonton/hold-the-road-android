@@ -4229,7 +4229,7 @@ function playStory(k,done){const D=STORY[k];if(!D){done&&done();return;}
   let el=$('story');if(!el){el=document.createElement('div');el.id='story';el.innerHTML='<canvas id="storyCv"></canvas><div class="stitle"></div><div class="sbox"><p class="stext"></p><span class="snext">Tap to continue</span></div><button class="sskip">Skip</button>';document.getElementById('world').parentNode.appendChild(el);}
   el.hidden=false;el.classList.remove('out');STO={k,i:0,t:0,done,el,last:performance.now()};
   el.querySelector('.stitle').textContent=D.title;showStoryLine();
-  el.onclick=e=>{if(e.target.classList.contains('sskip')){endStory();return;}AU.play('click');STO.i++;if(STO.i>=D.lines.length)endStory();else showStoryLine();};
+  el.onclick=e=>{if(!STO)return;if(e.target.classList.contains('sskip')){endStory();return;}AU.play('click');STO.i++;if(STO.i>=D.lines.length)endStory();else showStoryLine();};
   AU.play('toll',.6);requestAnimationFrame(storyFrame);}
 function showStoryLine(){const D=STORY[STO.k],p=STO.el.querySelector('.stext');p.classList.remove('in');void p.offsetWidth;p.textContent=D.lines[STO.i];p.classList.add('in');
   STO.el.querySelector('.snext').textContent=STO.i===D.lines.length-1?'Tap to close':'Tap to continue';}
@@ -4351,6 +4351,20 @@ if($('adsBtn'))$('adsBtn').onclick=()=>{AU.play&&AU.play('click');if(!MON.on||no
 if($('privBtn'))$('privBtn').onclick=()=>{AU.play&&AU.play('click');try{window.HTRNative.privacyOptions();}catch(e){}};
 monRefresh();
 try{MON.on&&window.HTRNative.ready();}catch(e){}
+
+
+/* ================= START-UP DIAGNOSTICS (Android) ================= */
+(function(){const L=window.HTRLog;if(!L)return;const log=m=>{try{L.log(String(m).slice(0,200));}catch(e){}};
+  log('js ready, dpr '+(window.devicePixelRatio||1)+', screen '+innerWidth+'x'+innerHeight);
+  {const _sm=setMode;setMode=function(m){log('mode '+m);return _sm.apply(this,arguments);};}
+  if(typeof playStory==='function'){const _p=playStory;playStory=function(k){log('story '+k);return _p.apply(this,arguments);};}
+  if(typeof endStory==='function'){const _e=endStory;endStory=function(){log('story end');return _e.apply(this,arguments);};}
+  if(typeof startLevel==='function'){const _s=startLevel;startLevel=function(mi,md){log('battle '+mi+' '+(md||''));return _s.apply(this,arguments);};}
+  if(typeof openBrief==='function'){const _b=openBrief;openBrief=function(i){log('brief '+i);return _b.apply(this,arguments);};}
+  const _i=AU.init.bind(AU);AU.init=function(){const had=!!AU.c;_i();if(!had&&AU.c)log('audio on');};
+  addEventListener('error',e=>log('JS error '+e.message+' @'+e.lineno));
+  let n=0;const beat=()=>{n++;log('alive '+n+'s mode '+(typeof mode!=='undefined'?mode:'?')+(window.STO?' story':''));if(n<12)setTimeout(beat,1000);};setTimeout(beat,1000);
+})();
 
 })();
 </script>

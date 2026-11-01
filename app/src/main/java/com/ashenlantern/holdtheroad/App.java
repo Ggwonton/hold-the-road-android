@@ -55,8 +55,46 @@ public class App extends Application {
         StringBuilder sb = new StringBuilder();
         if (crash != null) sb.append(crash).append("\n\n");
         if (boot != null) sb.append("Start-up log of the last run (it closed before 10 seconds):\n").append(boot);
+        sb.append("\n").append(exitReasons(c));
         return sb.toString();
     }
+
+    /** Android's own record of why the app's last runs ended (Android 11+). */
+    static String exitReasons(Context c) {
+        if (android.os.Build.VERSION.SDK_INT < 30) return "Exit reasons: needs Android 11+";
+        StringBuilder sb = new StringBuilder("Why Android ended the last runs:\n");
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) c.getSystemService(Context.ACTIVITY_SERVICE);
+            java.util.List<android.app.ApplicationExitInfo> list = am.getHistoricalProcessExitReasons(c.getPackageName(), 0, 3);
+            for (android.app.ApplicationExitInfo x : list) {
+                sb.append(String.format(java.util.Locale.US, "- %tT reason=%d status=%d imp=%d pss=%dMB rss=%dMB  %s%n",
+                        x.getTimestamp(), x.getReason(), x.getStatus(), x.getImportance(), x.getPss() / 1024, x.getRss() / 1024, x.getDescription()));
+                if (x.getReason() == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE || x.getReason() == android.app.ApplicationExitInfo.REASON_ANR) {
+                    try (java.io.InputStream in = x.getTraceInputStream()) {
+                        if (in != null) {
+                            byte[] b = new byte[60000]; int n = 0, r;
+                            while (n < b.length && (r = in.read(b, n, b.length - n)) > 0) n += r;
+                            // keep the readable parts (tombstones are protobuf on newer Android)
+                            StringBuilder t = new StringBuilder(); int run = 0; StringBuilder cur = new StringBuilder();
+                            for (int i = 0; i < n; i++) { int ch = b[i] & 0xff;
+                                if (ch >= 32 && ch < 127) { cur.append((char) ch); }
+                                else { if (cur.length() >= 5) t.append(cur).append(' '); cur.setLength(0); }
+                                if (t.length() > 2500) break; }
+                            sb.append("  trace: ").append(t).append("\n");
+                        }
+                    } catch (Throwable ignored) { }
+                }
+            }
+            if (list.isEmpty()) sb.append("- none recorded\n");
+        } catch (Throwable t) { sb.append("- could not read: ").append(t).append("\n"); }
+        sb.append("(reason codes: 2=killed for memory/signalled, 3=low memory, 4=Java crash, 5=native crash, 6=ANR, 10=user, 13=other)\n");
+        return sb.toString();
+    }
+
+    @Override
+    public void onTrimMemory(int level) { super.onTrimMemory(level); mark(this, "onTrimMemory " + level); }
+    @Override
+    public void onLowMemory() { super.onLowMemory(); mark(this, "onLowMemory"); }
 
     static void record(Context c, String what, Throwable e) {
         try {

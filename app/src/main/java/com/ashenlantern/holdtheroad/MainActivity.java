@@ -91,6 +91,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+        web.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface public void log(String m) { App.mark(MainActivity.this, "game: " + m); }
+        }, "HTRLog");
         App.mark(this, "WebView set up");
         // Ads and purchases must never stop the game from starting.
         if (!safe) try {
