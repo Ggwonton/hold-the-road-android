@@ -30,8 +30,8 @@ public class MainActivity extends AppCompatActivity {
     private WebView web;
     private Monetize monetize;
     static boolean picked;
-    static final String[] MODES = {"Normal", "Simple graphics", "Software drawing", "No effects", "Lower resolution", "CPU canvas", "Hardware layer"};
-    static final String[] QUERY = {"", "?gfx=1", "", "?nofx=1", "?lowres=1", "?cpu=1", ""};
+    static final String[] MODES = {"Normal", "Simple graphics", "Software drawing", "No effects", "Lower resolution", "CPU canvas", "Hardware layer", "CPU canvas + lower res"};
+    static final String[] QUERY = {"", "?gfx=1", "", "?nofx=1", "?lowres=1", "?cpu=1", "", "?cpu=1&lowres=1"};
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -39,7 +39,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         // If the last run died during start-up, show what happened instead of starting the game again.
         String problem = App.previousRunProblem(this);
-        if (problem != null) { showReport(problem); return; }
+        if (problem != null) {
+            // Players never see a report: after an early crash, step down to safer graphics and carry on.
+            int g = getSharedPreferences("diag", 0).getInt("gfx", 0), next = g == 0 ? 7 : g == 7 ? 2 : -1;
+            if (BuildConfig.DEBUG || next < 0) { showReport(problem); return; }
+            getSharedPreferences("diag", 0).edit().putInt("gfx", next).apply();
+            App.bootOk(this);
+        }
         // Test builds: while a graphics test mode is on, let the tester pick a mode on every launch.
         if (BuildConfig.DEBUG && getSharedPreferences("diag", 0).getInt("gfx", 0) != 0 && !picked) {
             showReport("Graphics test mode is on: " + MODES[getSharedPreferences("diag", 0).getInt("gfx", 0)] + ". Pick a mode to try.\n\n" + App.exitReasons(this)); return; }
@@ -139,11 +145,11 @@ public class MainActivity extends AppCompatActivity {
         title.setText("Hold the Road closed last time. Please send this report to the developer.");
         title.setTextColor(0xFFF6E7C4); title.setTextSize(16);
         col.addView(title);
-        String[] labels = {"Copy report", "Normal", "No effects", "Lower resolution", "CPU canvas", "Hardware layer", "Simple graphics", "Software drawing"};
-        final int[] modeOf = {-1, 0, 3, 4, 5, 6, 1, 2};
+        String[] labels = {"Copy report", "Normal", "CPU canvas + lower res", "CPU canvas", "Software drawing"};
+        final int[] modeOf = {-1, 0, 7, 5, 2};
         android.widget.LinearLayout row = null;
         for (int k = 0; k < labels.length; k++) {
-            if (k % 4 == 0) { row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL); col.addView(row); }
+            if (k % 5 == 0) { row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL); col.addView(row); }
             android.widget.Button b = new android.widget.Button(this);
             b.setText(labels[k]); b.setAllCaps(false);
             final int mode = modeOf[k];
