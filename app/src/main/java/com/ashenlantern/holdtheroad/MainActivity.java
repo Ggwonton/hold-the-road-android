@@ -29,7 +29,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 public class MainActivity extends AppCompatActivity {
     private WebView web;
     private Monetize monetize;
-    static boolean picked;
+    static boolean picked, bench;
     static final String[] MODES = {"Normal", "Simple graphics", "Software drawing", "No effects", "Lower resolution", "CPU canvas", "Hardware layer", "CPU canvas + lower res"};
     static final String[] QUERY = {"", "?gfx=1", "", "?nofx=1", "?lowres=1", "?cpu=1", "", "?cpu=1&lowres=1"};
 
@@ -111,6 +111,10 @@ public class MainActivity extends AppCompatActivity {
         });
         web.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface public void log(String m) { App.mark(MainActivity.this, "game: " + m); }
+            @android.webkit.JavascriptInterface public void copy(String t) { runOnUiThread(() -> {
+                ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road FPS test", t));
+                android.widget.Toast.makeText(MainActivity.this, "Results copied", android.widget.Toast.LENGTH_SHORT).show(); }); }
         }, "HTRLog");
         App.mark(this, "WebView set up");
         // Ads and purchases must never stop the game from starting.
@@ -120,7 +124,8 @@ public class MainActivity extends AppCompatActivity {
         } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
         App.mark(this, monetize != null ? "ads object ready" : "ads skipped");
         String q = gfx > 0 && gfx < QUERY.length ? QUERY[gfx] : "";
-        if (BuildConfig.DEBUG) q += (q.isEmpty() ? "?" : "&") + "fps=1";
+        if (BuildConfig.DEBUG) q += (q.isEmpty() ? "?" : "&") + "fps=1" + (bench ? "&bench=1" : "");
+        bench = false;
         web.loadUrl("file:///android_asset/index.html" + q);
         App.mark(this, "page loading");
         if (monetize != null) {
@@ -148,8 +153,8 @@ public class MainActivity extends AppCompatActivity {
         title.setText("Hold the Road closed last time. Please send this report to the developer.");
         title.setTextColor(0xFFF6E7C4); title.setTextSize(16);
         col.addView(title);
-        String[] labels = {"Copy report", "Normal", "Lower resolution", "CPU canvas + lower res", "Software drawing"};
-        final int[] modeOf = {-1, 0, 4, 7, 2};
+        String[] labels = {"Copy report", "Normal", "FPS test", "Lower resolution", "Software drawing"};
+        final int[] modeOf = {-1, 0, 8, 4, 2};
         android.widget.LinearLayout row = null;
         for (int k = 0; k < labels.length; k++) {
             if (k % 5 == 0) { row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL); col.addView(row); }
@@ -162,7 +167,8 @@ public class MainActivity extends AppCompatActivity {
                     if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road report", text));
                     android.widget.Toast.makeText(this, "Report copied", android.widget.Toast.LENGTH_SHORT).show();
                 } else {
-                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", false).putInt("gfx", mode).apply();
+                    bench = mode == 8;
+                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", false).putInt("gfx", mode == 8 ? 0 : mode).apply();
                     App.bootOk(this);
                     picked = true;
                     recreate();

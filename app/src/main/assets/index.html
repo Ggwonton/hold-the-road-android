@@ -2966,7 +2966,7 @@ function update(dt){
 function drawBeams(g){for(const b of S.beams){g.save();g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(255,230,150,${b.t*3})`;g.lineWidth=3;g.beginPath();b.pts.forEach((p,i)=>{if(!i){g.moveTo(p[0],p[1]);return;}const q=b.pts[i-1];for(let k=1;k<=4;k++){const tt=k/4;g.lineTo(lerp(q[0],p[0],tt)+(k<4?(rand()-.5)*10:0),lerp(q[1],p[1],tt)+(k<4?(rand()-.5)*10:0));}});g.stroke();g.restore();}}
 function render(){
   const k=cv.width/W;let sx=0,sy=0;if(S.shake>0&&!reduceMotion&&SAVE.shake){sx=(rand()-.5)*S.shake;sy=(rand()-.5)*S.shake;}
-  ctx.setTransform(k,0,0,k,sx*k,sy*k);ctx.imageSmoothingQuality='high';
+  ctx.setTransform(k,0,0,k,sx*k,sy*k);ctx.imageSmoothingQuality=DBG.smooth?'high':'low';
   if(DBG.layers){ctx.fillStyle='#4a6a2a';ctx.fillRect(0,0,W,H);}else ctx.drawImage(gpuOf(LV.terrain),0,0,W,H);if(!DBG.fx){ctx.drawImage(decal,0,0,W,H);
   drawGroundFX(ctx);drawBurns(ctx);}
   for(const p of plots)if(!p.tower)drawPlot(ctx,p,S.menu&&S.menu.plot===p);
@@ -2993,7 +2993,7 @@ function frame(now){
   MUS.tick();
   if(mode==='battle'&&S&&LV){
     if(HITSTOP>0){HITSTOP-=dt;}else if(!S.paused){const n=S.speed>1?2:1;for(let i=0;i<n;i++)update(dt*S.speed/n);S.shake=Math.max(0,S.shake-dt*20);flashRed=Math.max(0,flashRed-dt*1.5);}
-    render();updateUI();tutTick(dt);
+    render();if(!DBG.ui)updateUI();tutTick(dt);
   }else drawWorld(dt);
   requestAnimationFrame(frame);
 }
@@ -4372,6 +4372,39 @@ try{MON.on&&window.HTRNative.ready();}catch(e){}
     [['ink','Plain towers'],['towers','No towers'],['foes','No enemies'],['fx','No effects'],['weather','No weather'],['layers','No map layers']].forEach(([k,t])=>{const b=document.createElement('button');b.textContent=t;b.style.cssText='font:bold 11px sans-serif;padding:3px 6px;background:#333;color:#fff;border:1px solid #999;border-radius:4px';
       b.onclick=e=>{e.stopPropagation();DBG[k]=!DBG[k];b.style.background=DBG[k]?'#a33':'#333';log('toggle '+k+' '+DBG[k]);};bar.appendChild(b);});
     document.body.appendChild(bar);}
+  if(/[?&]bench=1/.test(location.search))setTimeout(runBench,1500);
+  async function runBench(){
+    const wait=ms=>new Promise(r=>setTimeout(r,ms)),rows=[],t0=Date.now();
+    const meas=ms=>new Promise(res=>{const ts=[];const f=t=>{ts.push(t);if(t-ts[0]<ms)requestAnimationFrame(f);else{const d=[];for(let i=1;i<ts.length;i++)d.push(ts[i]-ts[i-1]);d.sort((a,b)=>a-b);
+      res((ts.length-1)/((ts[ts.length-1]-ts[0])/1000));}};requestAnimationFrame(f);});
+    const box=document.createElement('div');box.style.cssText='position:fixed;right:6px;top:4px;z-index:10000;font:bold 13px monospace;color:#fff;background:rgba(0,0,0,.8);padding:6px 9px;border-radius:6px;white-space:pre;pointer-events:none';document.body.appendChild(box);
+    const show=s=>{box.textContent='FPS TEST\n'+rows.join('\n')+(s?'\n> '+s:'');};
+    const step=async(name,ms)=>{show(name+'...');await wait(500);const f=await meas(ms||2500);rows.push((name+'                        ').slice(0,24)+f.toFixed(1)+' fps');show('');log('bench '+name+' '+f.toFixed(1));};
+    const clear=()=>{for(const k in DBG)delete DBG[k];};
+    const setDpr=d=>{try{window.devicePixelRatio=d}catch(e){}resize();};
+    const real=window.devicePixelRatio;
+    try{
+      const I=document.getElementById('intro');if(I)I.hidden=true;$('splash').hidden=true;try{endStory()}catch(e){}
+      const ks=setInterval(()=>{try{endStory()}catch(e){}},150);setMode('map');await wait(1500);
+      await step('world map');
+      startLevel(4,'endless');try{endStory()}catch(e){}S.gold=99999;S.lives=9999;
+      const ts=['archer','barracks','chapel','trebuchet'];let i=0;for(const pl of plots){if(i>=7)break;try{buildTower(pl,ts[i%4]);}catch(e){}i++;}
+      startWave();await wait(5000);try{endStory()}catch(e){}
+      const keep=()=>{if(!S)return;S.lives=9999;S.gold=99999;if(S.enemies.length<6&&!S.waveRunning)startWave();};const kt=setInterval(keep,500);
+      rows.push('towers '+S.towers.length+', enemies '+S.enemies.length);
+      await step('battle');
+      for(const [k,t] of [['ink','plain towers'],['towers','no towers'],['foes','no enemies'],['fx','no effects'],['weather','no weather'],['layers','no map layers'],['smooth','HIGH smoothing (old)'],['ui','no HUD updates']]){clear();DBG[k]=1;await step(t);}
+      clear();DBG.ink=1;DBG.layers=1;await step('plain+no layers');
+      clear();Object.assign(DBG,{ink:1,towers:1,foes:1,fx:1,weather:1,layers:1});await step('everything off');
+      clear();for(const d of [1.75,1.5,1.25,1]){setDpr(d);await wait(300);await step('battle at '+d+'x');}
+      setDpr(real);clearInterval(kt);clearInterval(ks);
+    }catch(e){rows.push('ERROR '+e.message);}
+    rows.push('took '+Math.round((Date.now()-t0)/1000)+'s, screen dpr '+real);
+    show('');const res=rows.join('\n');log('bench done');
+    box.style.pointerEvents='auto';const b=document.createElement('button');b.textContent='Copy results';b.style.cssText='display:block;margin-top:6px;font:bold 14px sans-serif;padding:6px 12px';
+    b.onclick=e=>{e.stopPropagation();try{L.copy(res);b.textContent='Copied';}catch(er){b.textContent='Copy failed';}};box.appendChild(b);
+    const x=document.createElement('button');x.textContent='Close';x.style.cssText=b.style.cssText;x.onclick=e=>{e.stopPropagation();box.remove();try{setMode('map')}catch(er){}};box.appendChild(x);
+  }
   let n=0;const beat=()=>{n++;log('alive '+n+'s '+fps+'fps mode '+(typeof mode!=='undefined'?mode:'?')+(window.STO?' story':''));if(n<12)setTimeout(beat,1000);};setTimeout(beat,1000);
 })();
 
