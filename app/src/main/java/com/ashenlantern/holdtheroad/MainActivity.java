@@ -38,6 +38,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // If the last run died during start-up, show what happened instead of starting the game again.
+        // A new version starts clean: full graphics, and no crash records left by an older version.
+        android.content.SharedPreferences diag = getSharedPreferences("diag", 0);
+        if (diag.getInt("ver", 0) != BuildConfig.VERSION_CODE) {
+            diag.edit().putInt("ver", BuildConfig.VERSION_CODE).putInt("gfx", 0).putBoolean("noAds", false).apply();
+            App.bootOk(this);
+        }
         String problem = App.previousRunProblem(this);
         if (problem != null) {
             // Players never see a report: after an early crash, step down to safer graphics and carry on.
