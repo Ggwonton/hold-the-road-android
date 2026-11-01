@@ -1,6 +1,13 @@
 package com.ashenlantern.holdtheroad;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.widget.TextView;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.ByteArrayOutputStream;
 import android.content.Intent;
 import android.net.Uri;
 import android.webkit.WebResourceRequest;
@@ -59,10 +66,16 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
-        monetize = new Monetize(this, web);
-        web.addJavascriptInterface(monetize, "HTRNative");
+        // Ads and purchases must never stop the game from starting.
+        try {
+            monetize = new Monetize(this, web);
+            web.addJavascriptInterface(monetize, "HTRNative");
+        } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
         web.loadUrl("file:///android_asset/index.html");
-        monetize.start();
+        if (monetize != null) {
+            try { monetize.start(); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
+        }
+        showLastCrash();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -72,6 +85,34 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    /** If the last run crashed (or ads failed), show what happened so it can be sent to the developer. */
+    private void showLastCrash() {
+        try {
+            File f = new File(getFilesDir(), App.CRASH_FILE);
+            if (!f.exists()) return;
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            try (FileInputStream in = new FileInputStream(f)) { byte[] b = new byte[4096]; int n; while ((n = in.read(b)) > 0) bo.write(b, 0, n); }
+            final String text = bo.toString("UTF-8");
+            f.delete();
+            TextView tv = new TextView(this);
+            tv.setText(text);
+            tv.setTextSize(11);
+            tv.setTextIsSelectable(true);
+            tv.setPadding(40, 24, 40, 24);
+            android.widget.ScrollView sv = new android.widget.ScrollView(this);
+            sv.addView(tv);
+            new AlertDialog.Builder(this)
+                    .setTitle("Something went wrong last time")
+                    .setView(sv)
+                    .setPositiveButton("Copy report", (d, w) -> {
+                        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                        if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road crash", text));
+                    })
+                    .setNegativeButton("Close", null)
+                    .show();
+        } catch (Throwable ignored) { }
     }
 
     private void hideSystemBars() {
