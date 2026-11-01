@@ -664,6 +664,26 @@ body{background:#1c140c}
 #achPop b{display:block;font-family:var(--display);font-weight:400;font-size:1.05em;color:#3a200c}
 #achPop em{display:block;font-style:normal;font-family:var(--body);font-size:.78em;color:#5a3418}
 @media (max-width:700px){.achStats{grid-template-columns:repeat(2,minmax(0,1fr))}.achGrid{grid-template-columns:1fr}}
+
+/* short phone screens (360 tall): the road briefing scrolls inside itself and To Battle stays pinned to its bottom edge */
+@media (max-height:400px){
+#brief{max-height:calc(100% - 1em);overflow-y:auto;overscroll-behavior:contain}
+#brief .x{top:.35em;right:.35em}
+#brief>.row{position:sticky;bottom:-1em;z-index:3;margin:0 -1.2em -1em;padding:.55em 1.2em .9em;background:linear-gradient(rgba(240,216,164,0),#f0d8a4 30%)}
+}
+/* the Done / Close button of a scrolling panel stays in view */
+.veil>.panel>.cta{position:sticky;bottom:.3em;z-index:3}
+/* during the end-of-road card, deeds slide in at the top-left corner so they cover neither its title nor its buttons */
+#achPop.low{left:.7em;top:.7em;transform:translate(-130%,0)}
+#achPop.low.show{transform:translate(0,0)}
+/* finger-sized corner buttons on phones: at least 34-38 px, more room between them, and a touch area that reaches a little further */
+.hud.tr,.mapknobs{gap:max(.45em,7px)}
+.hud.tr .knob{width:max(2.3em,34px);height:max(2.3em,34px)}
+.hud.tr .knob svg{width:max(.95em,15px);height:max(.95em,15px)}
+.mapknobs .knob.big{width:max(2.5em,38px);height:max(2.5em,38px)}
+.mapknobs .knob.big svg{width:max(1.15em,17px);height:max(1.15em,17px)}
+.hud.tr .knob,.mapknobs .knob{position:relative}
+.hud.tr .knob::after,.mapknobs .knob::after{content:'';position:absolute;left:-3px;right:-3px;top:-6px;bottom:-10px;border-radius:12px}
 </style>
 </head><body>
 
@@ -1709,7 +1729,7 @@ const ETYPES={
   risen:{hp:48,spd:54,armor:.2,gold:3,dmg:6,rate:1,r:11,sc:1,lives:1,label:'Risen',note:'Your own fallen, back on their feet.'},
   condemned:{hp:50,spd:58,armor:0,gold:6,dmg:6,rate:.9,r:10,sc:.95,lives:1,label:'Condemned',note:'Chained souls of the Circles. Quick.'},
   shade:{hp:62,spd:52,armor:0,gold:9,dmg:8,rate:1,r:10,sc:1,lives:1,ghost:1,label:'Shade',note:'Half there. Arrows and stones pass through.'},
-  hellhound:{hp:64,spd:76,armor:0,gold:8,dmg:8,rate:.7,r:11,sc:1,lives:1,quad:1,label:'Hellhound',note:'Very fast. Shrugs off fire.'},
+  hellhound:{hp:64,spd:70,armor:0,gold:8,dmg:8,rate:.7,r:11,sc:1,lives:1,quad:1,label:'Hellhound',note:'Very fast. Shrugs off fire.'},
   ogre:{hp:320,spd:26,armor:.1,gold:24,dmg:24,rate:1.9,r:15,sc:1.5,lives:2,cleave:1,label:'Ogre',note:'Each swing hits every soldier near it.'},
   troll:{hp:440,spd:24,armor:.2,gold:32,dmg:22,rate:1.6,r:16,sc:1.6,lives:3,regen:9,cleave:1,label:'Troll',note:'Heals quickly. Fire stops it.'},
   lord:{hp:1700,spd:19,armor:.3,gold:150,dmg:32,rate:1.8,r:20,sc:1.9,lives:10,boss:1,label:'Plague Lord',note:'Raises walkers as it marches.'},
@@ -1737,13 +1757,13 @@ const MAPS=[
   {name:'Gluttony',act:2,hell:2,kind:'snake',waves:9,elites:['swollen','swollen','plague'],roster:{walker:3,brute:1.5,condemned:2,elite:.8},desc:'The Third Circle. The bloated dead in endless rain.'},
   {name:'Greed',act:2,hell:3,kind:'bottom',waves:10,roster:{condemned:2,brute:1,shade:1,hellhound:1,elite:.8},desc:'The Fourth Circle. Gold piled high, and no one to spend it.'},
   {name:'Wrath',act:2,hell:4,kind:'fork',waves:10,elites:['pyre','blood','jugger'],roster:{hellhound:2,brute:1.5,condemned:2,elite:1},desc:'The Fifth Circle. A red marsh of fury.'},
-  {name:'Heresy',act:2,hell:5,kind:'top',waves:10,elites:['caller','wraith','bone'],roster:{shade:2,condemned:2,hellhound:1,brute:1,elite:1},desc:'The Sixth Circle. Burning tombs, and the voices in them.'},
+  {name:'Heresy',act:2,hell:5,kind:'top',waves:10,elites:['caller','wraith','bone'],roster:{shade:1.5,condemned:2,hellhound:1,brute:1,elite:1},desc:'The Sixth Circle. Burning tombs, and the voices in them.'},
   {name:'Treachery',act:2,hell:6,kind:'snake',waves:10,elites:['frost','frost','wraith'],roster:{shade:2,brute:1.5,condemned:2,hellhound:1,elite:1.2},desc:'The Seventh Circle. Ice, and the betrayers frozen in it.'},
   {name:'The Hellgate',act:2,hell:7,kind:'fork',waves:10,boss:'demon',roster:{hellhound:2,brute:2,shade:1.5,condemned:2,elite:1.2},desc:'A demon lord holds the last gate. Break it.'},
   {name:"The King's Lair",act:2,hell:8,kind:'fork',waves:12,boss:'king',roster:{walker:2,condemned:2,shade:2,hellhound:1.5,brute:2,ogre:.5,elite:1.4},desc:'The bottom of the pit. The King Below waits.'},
 ];
 MAPS.forEach((M,i)=>{M.seed=1000+i*37;M.region=M.hell!=null?HELLS[M.hell].t||'The Seven Circles':ACTS[M.act].n;});
-const WK={A:18,B:4,C:3.2,D:.11,E:.25,H1:.1,H2:.09,H3:.01,H4:.09,mul:1.5,DM:{0:.9,1:1.1,2:1.2,3:1.4,4:1.1,5:1.6,6:1.6,7:1.7,8:2.2,9:.75,10:2.2,11:2.2,12:2.2,13:.9,14:1.3,15:.8,16:.5,17:2.0,18:.5,19:2.2},L2:[.5,.7],L3:[.42,.62]};
+const WK={A:18,B:4,C:3.2,D:.11,E:.25,H1:.1,H2:.09,H3:.01,H4:.09,mul:1.5,DM:{0:.9,1:1.1,2:1.2,3:1.4,4:1.1,5:1.6,6:1.6,7:1.7,8:2.2,9:.62,10:2.2,11:2.2,12:2.2,13:.9,14:1.3,15:.8,16:.42,17:2.0,18:.5,19:2.2},L2:[.5,.7],L3:[.42,.62]};
 function laneFactor(mi,w){const n=laneCount(MAPS[mi]);if(n===1)return 1;const L=n===3?WK.L3:WK.L2;return w<3?L[0]+(L[1]-L[0])*w/3:L[1];}
 function genWave(mi,w,R){const M=MAPS[mi];
     const budget=(WK.A+w*WK.B+w*w*WK.C)*(1+mi*WK.D*(WK.E+(1-WK.E)*Math.min(1,w/5)))*(WK.mul||1)*(WK.DM[mi]||1)*laneFactor(mi,w)*(WK.mode||1),ng=Math.min(4,1+Math.floor(w/2)),groups=[];let delay=0;
@@ -3996,6 +4016,7 @@ function tutTick(dt){if(!TUT.on||!S||mode!=='battle'){if(TUT.el&&!TUT.on)TUT.el.
   /* a step the player has already done counts at once, even if its 'wait' condition no longer holds (e.g. they upgraded early and spent the gold) */
   if(st.done()){TUT.step++;TUT.t=0;TUT.last='';AU.play('chime',.4);return;}
   if(st.wait&&!st.wait()){TUT.el.hidden=true;return;}
+  if(TUT.step===0&&S.time<2.8){TUT.el.hidden=true;return;} /* let the road's name banner finish first */
   TUT.t+=dt;
   const at=st.at();if(!at){TUT.el.hidden=true;return;}
   TUT.el.hidden=false;
@@ -4267,7 +4288,7 @@ let UP_TAB='towers';
 function openUpgrades(){
   if(!SAVE.up)SAVE.up={};
   let tabs=$('upTabs');if(!tabs){tabs=document.createElement('div');tabs.id='upTabs';tabs.className='upTabs';$('upgrid').before(tabs);}
-  tabs.innerHTML=`<button class="${UP_TAB==='towers'?'on':''}" data-t="towers">Towers</button><button class="${UP_TAB==='magic'?'on':''}" data-t="magic">Spells</button><span class="upTot">Every upgrade: <b>${upTotalCost()}</b> ★ · Stars on the map: <b>100</b></span>`;
+  tabs.innerHTML=`<button class="${UP_TAB==='towers'?'on':''}" data-t="towers">Towers</button><button class="${UP_TAB==='magic'?'on':''}" data-t="magic">Spells</button><span class="upTot">All upgrades: <b>${upTotalCost()}</b> ★ · Stars to earn: <b>100</b></span>`;
   tabs.querySelectorAll('button').forEach(b=>b.onclick=()=>{UP_TAB=b.dataset.t;upSel=null;AU.play('click');openUpgrades();});
   const grid=$('upgrid');grid.innerHTML='';grid.className='upgrid '+UP_TAB;
   const keys=UP_TAB==='towers'?TOWER_KEYS:MAGIC_KEYS;
@@ -4432,7 +4453,7 @@ const ACH=[
 let ACH_Q=[],ACH_BUSY=false;
 function checkAch(){const s=ST();let any=false;for(const a of ACH)if(!SAVE.ach[a.id]&&a.ok(s)){SAVE.ach[a.id]=Date.now();ACH_Q.push(a);any=true;}if(any){writeSave();showAchQ();}}
 function showAchQ(){if(ACH_BUSY||!ACH_Q.length)return;ACH_BUSY=true;const a=ACH_Q.shift();let el=$('achPop');if(!el){el=document.createElement('div');el.id='achPop';document.getElementById('world').parentNode.appendChild(el);}
-  el.innerHTML=`<span class="aico">${achIcon(a.ico)}</span><span><small>Achievement</small><b>${a.n}</b><em>${a.d}</em></span>`;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');AU.play('achieve');
+  el.classList.toggle('low',!$('endScreen').hidden);el.innerHTML=`<span class="aico">${achIcon(a.ico)}</span><span><small>Achievement</small><b>${a.n}</b><em>${a.d}</em></span>`;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');AU.play('achieve');
   setTimeout(()=>{el.classList.remove('show');setTimeout(()=>{ACH_BUSY=false;showAchQ();},450);},3200);}
 function achIcon(k){const P={skull:'<path d="M12 3a8 8 0 0 0-8 8c0 3 1.5 5 3.5 6v3h9v-3c2-1 3.5-3 3.5-6a8 8 0 0 0-8-8z" fill="#efe6cc"/><circle cx="9" cy="11" r="2" fill="#2a1a10"/><circle cx="15" cy="11" r="2" fill="#2a1a10"/>',
   crown:'<path d="M3 18l1.5-10 4.5 4 3-6 3 6 4.5-4L21 18z" fill="#ffd24a" stroke="#7a4a10" stroke-width="1.2"/>',shield:'<path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z" fill="#5a86e0" stroke="#e8f0ff" stroke-width="1.4"/>',
