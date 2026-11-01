@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
             App.bootOk(this);
         }
         // Test builds: while a graphics test mode is on, let the tester pick a mode on every launch.
-        if (BuildConfig.DEBUG && getSharedPreferences("diag", 0).getInt("gfx", 0) != 0 && !picked) {
+        if (BuildConfig.DEBUG && !picked) {
             showReport("Graphics test mode is on: " + MODES[getSharedPreferences("diag", 0).getInt("gfx", 0)] + ". Pick a mode to try.\n\n" + App.exitReasons(this)); return; }
         App.startBoot(this);
         final boolean safe = getSharedPreferences("diag", 0).getBoolean("noAds", false);
@@ -118,7 +118,9 @@ public class MainActivity extends AppCompatActivity {
             web.addJavascriptInterface(monetize, "HTRNative");
         } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
         App.mark(this, monetize != null ? "ads object ready" : "ads skipped");
-        web.loadUrl("file:///android_asset/index.html" + (gfx > 0 && gfx < QUERY.length ? QUERY[gfx] : ""));
+        String q = gfx > 0 && gfx < QUERY.length ? QUERY[gfx] : "";
+        if (BuildConfig.DEBUG) q += (q.isEmpty() ? "?" : "&") + "fps=1";
+        web.loadUrl("file:///android_asset/index.html" + q);
         App.mark(this, "page loading");
         if (monetize != null) {
             try { monetize.start(); App.mark(this, "ads started"); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
@@ -145,8 +147,8 @@ public class MainActivity extends AppCompatActivity {
         title.setText("Hold the Road closed last time. Please send this report to the developer.");
         title.setTextColor(0xFFF6E7C4); title.setTextSize(16);
         col.addView(title);
-        String[] labels = {"Copy report", "Normal", "CPU canvas + lower res", "CPU canvas", "Software drawing"};
-        final int[] modeOf = {-1, 0, 7, 5, 2};
+        String[] labels = {"Copy report", "Normal", "Lower resolution", "CPU canvas + lower res", "Software drawing"};
+        final int[] modeOf = {-1, 0, 4, 7, 2};
         android.widget.LinearLayout row = null;
         for (int k = 0; k < labels.length; k++) {
             if (k % 5 == 0) { row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL); col.addView(row); }
