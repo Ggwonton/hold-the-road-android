@@ -32,6 +32,9 @@ jobs:
         if: env.HAS_KEY == 'true'
         run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/upload.jks
 
+      - name: Bundle fonts for offline play
+        run: python3 tools/fetch_fonts.py
+
       - name: Build debug APK and release bundle
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -52,7 +55,7 @@ jobs:
       # Also publish the build outputs to the build-output branch so they can be fetched with plain git.
       - name: Publish outputs to build-output branch
         run: |
-          mkdir -p /tmp/out && cp app/build/outputs/apk/debug/*.apk app/build/outputs/bundle/release/*.aab /tmp/out/
+          mkdir -p /tmp/out && cp app/build/outputs/apk/debug/*.apk app/build/outputs/bundle/release/*.aab /tmp/out/ && cp -r app/src/main/assets/fonts /tmp/out/fonts
           cd /tmp/out && git init -q -b build-output && git add -A
           git -c user.name="github-actions" -c user.email="actions@github.com" commit -q -m "Build ${{ github.sha }}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" build-output
