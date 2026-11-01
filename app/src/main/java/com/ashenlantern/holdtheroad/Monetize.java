@@ -82,7 +82,7 @@ public class Monetize {
 
     private boolean showInterstitialNow() {
         InterstitialAd ad = interstitial;
-        if (noAds || ad == null) { loadInterstitial(); return false; }
+        if (noAds || ad == null) { loadInterstitial(); js("adclosed", "true"); return false; }
         interstitial = null;
         ad.setFullScreenContentCallback(new FullScreenContentCallback() {
             @Override public void onAdDismissedFullScreenContent() { js("adclosed", "true"); loadInterstitial(); }

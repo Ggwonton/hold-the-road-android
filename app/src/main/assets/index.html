@@ -385,6 +385,12 @@ body{background:#1c140c}
 #brief .x{width:1.8em;height:1.8em;background:linear-gradient(#e8503a,#a8281a);color:#fff;border:3px solid var(--ink);font-family:var(--display);box-shadow:0 3px 0 var(--ink);top:-.6em;right:-.6em}
 #brief .stars svg{width:1.7em;height:1.7em;filter:drop-shadow(0 2px 0 var(--ink))}
 
+/* the battle stats and wave banner only show information: let taps through to the towers underneath */
+#battleHud .plaque,#battleHud .penwrap{pointer-events:none}
+/* panels (settings, council, spellbook, bestiary, deeds) always sit above the pause menu and end screen */
+.veil:not([hidden]){z-index:40}
+#pauseScreen:not([hidden]),#endScreen:not([hidden]){z-index:30}
+
 /* ===== studio intro ===== */
 #intro{position:absolute;inset:0;z-index:50;background:#050302;display:grid;place-items:center;overflow:hidden;cursor:pointer;transition:opacity .9s ease}
 #intro.out{opacity:0;pointer-events:none}
@@ -870,7 +876,9 @@ const mtof=n=>440*Math.pow(2,(n-69)/12);
 /* ================= SAVE ================= */
 const SAVE_KEY='rotmarch-hold-the-road-v2';
 const SAVE={stars:Array(20).fill(0),sfx:.8,music:.5,shake:true,names:true,unlockAll:false,up:{}};
-function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);Object.assign(SAVE,o);if(!Array.isArray(SAVE.stars)||SAVE.stars.length!==20)SAVE.stars=Array(20).fill(0);}}catch(e){}}
+function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(r){const o=JSON.parse(r);Object.assign(SAVE,o);if(!Array.isArray(SAVE.stars)||SAVE.stars.length!==20)SAVE.stars=Array(20).fill(0);}}catch(e){}
+  for(const k of['sfx','music']){const v=+SAVE[k];SAVE[k]=isFinite(v)?Math.max(0,Math.min(1,v)):(k==='sfx'?.8:.5);}
+  SAVE.stars=SAVE.stars.map(v=>{v=Math.round(+v);return isFinite(v)?Math.max(0,Math.min(3,v)):0;});}
 function writeSave(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE));}catch(e){}}
 function unlocked(i){return i===0||SAVE.unlockAll||SAVE.stars[i-1]>0;}
 function applyVolumes(){if(AU.out)AU.out.gain.value=SAVE.sfx*.75;if(AU.mus)AU.mus.gain.value=SAVE.music*.55;}
@@ -2735,7 +2743,12 @@ function drawLife(g){
 
 /* ================= RING MENU ================= */
 const BUILD_SLOTS=[['archer',-52,-52],['barracks',52,-52],['chapel',-52,50],['trebuchet',52,50]];
-function menuCenter(){const m=S.menu;return{cx:clamp(m.x,90,W-90),cy:clamp(m.y,110,H-110)};}
+function menuCenter(){const m=S.menu;const cx=clamp(m.x,90,W-90);let cy=clamp(m.y,110,H-110);
+  /* keep the ring's buttons clear of the HUD buttons, which would swallow the taps:
+     sound/speed/pause top right, spells bottom left, the bell bottom right */
+  if(cx>W-250)cy=Math.max(cy,175);
+  if(cx<320||cx>W-320)cy=Math.min(cy,H-205);
+  return{cx,cy};}
 function menuButtons(){
   const m=S.menu;if(!m)return[];const {cx,cy}=menuCenter();
   if(m.plot&&!m.plot.tower)return BUILD_SLOTS.map(([type,dx,dy])=>({id:type,x:cx+dx,y:cy+dy,cost:TOWERS[type].cost[0],lock:LV.mode==='iron'&&!ironTowers(S.mi).includes(type)?'iron':0}));
@@ -3065,7 +3078,9 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 /* ================= SCREENS ================= */
-function setMode(m){mode=m;const b=m==='battle';cv.hidden=!b;$('battleHud').hidden=!b;wcv.hidden=b;$('mapUI').hidden=b;if(!b){S=null;}refreshMapUI();}
+function setMode(m){mode=m;const b=m==='battle';
+  if(!b&&LV&&LV.terrain&&LV.terrain.width){freeCv(LV.terrain);freeCv(LV.front);freeCv(LV.shade);if(decal){decal.width=decal.height=0;}} /* leaving a battle: free its full-size images */
+  cv.hidden=!b;$('battleHud').hidden=!b;wcv.hidden=b;$('mapUI').hidden=b;if(!b){S=null;}refreshMapUI();}
 function startLevel(mi,md){
   $('brief').hidden=true;WM.sel=-1;
   if(LV){freeCv(LV.terrain);freeCv(LV.front);freeCv(LV.shade);}
@@ -3187,8 +3202,10 @@ wcv.addEventListener('pointermove',ev=>{const p=toWorld(ev,wcv);WM.hover=nodeAt(
 wcv.addEventListener('pointerdown',ev=>{const p=toWorld(ev,wcv);const i=nodeAt(p.x,p.y);if(i<0){$('brief').hidden=true;WM.sel=-1;return;}AU.play('click');if(!unlocked(i)){toast('Finish road '+i+' to open this one',true);return;}openBrief(i);});
 $('briefX').onclick=()=>{$('brief').hidden=true;WM.sel=-1;};
 $('toBattle').onclick=()=>{if(WM.sel>=0&&unlocked(WM.sel)){const i=WM.sel;AU.play('horn',.6);wipeTo(()=>startLevel(i,BRIEF_MODE));}};
-$('openSet').onclick=openSettings;$('pauseSet').onclick=openSettings;
-$('setClose').onclick=()=>{$('setV').hidden=true;};$('storyBtn').onclick=()=>{$('setV').hidden=true;if(!(SAVE.story&&Object.keys(SAVE.story).length)){toast('No scenes unlocked yet');return;}replayStory();};
+$('openSet').onclick=openSettings;
+/* from the pause menu: hide the pause menu while Settings is open, bring it back on Done */
+let SET_FROM_PAUSE=false;$('pauseSet').onclick=()=>{SET_FROM_PAUSE=true;$('pauseScreen').hidden=true;openSettings();};
+$('setClose').onclick=()=>{$('setV').hidden=true;if(SET_FROM_PAUSE){SET_FROM_PAUSE=false;if(mode==='battle'&&S&&S.paused&&!S.over)$('pauseScreen').hidden=false;}};$('storyBtn').onclick=()=>{$('setV').hidden=true;if(!(SAVE.story&&Object.keys(SAVE.story).length)){toast('No scenes unlocked yet');return;}replayStory();};
 {const de=document.documentElement,fsOk=!!(de.requestFullscreen||de.webkitRequestFullscreen);if(!fsOk||window.__ANDROID__)$('fsRow').hidden=true;$('optFull').onchange=e=>{try{if(e.target.checked){(de.requestFullscreen||de.webkitRequestFullscreen).call(de);try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{});}catch(_){}}else (document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(_){}};document.addEventListener('fullscreenchange',()=>{$('optFull').checked=!!document.fullscreenElement;});}
 $('sfxVol').oninput=e=>{SAVE.sfx=e.target.value/100;applyVolumes();writeSave();};
 $('musVol').oninput=e=>{SAVE.music=e.target.value/100;applyVolumes();writeSave();};
@@ -4000,7 +4017,8 @@ function renderModes(i){ensureModeSave();let box=$('bModes');if(!box){box=docume
 /* ================= PHONE / ANDROID HOOKS ================= */
 // Called by the Android wrapper's back button. Returns true when the game handled it.
 window.androidBack=function(){
-  for(const id of['achV','bookV','bestV','upV','setV']){const e=$(id);if(e&&!e.hidden){e.hidden=true;return true;}}
+  if(typeof STO!=='undefined'&&STO){endStory();return true;}
+  for(const id of['achV','bookV','bestV','upV','setV']){const e=$(id);if(e&&!e.hidden){if(id==='setV')$('setClose').onclick();else e.hidden=true;return true;}}
   if(!$('brief').hidden){$('brief').hidden=true;WM.sel=-1;return true;}
   if(mode==='battle'&&S){if(!$('endScreen').hidden){$('endScreen').hidden=true;wipeTo(()=>setMode('map'));return true;}
     if(S.menu||S.ability){S.menu=null;S.ability=null;return true;}
