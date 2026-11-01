@@ -29,6 +29,9 @@ import androidx.core.view.WindowInsetsControllerCompat;
 public class MainActivity extends AppCompatActivity {
     private WebView web;
     private Monetize monetize;
+    static boolean picked;
+    static final String[] MODES = {"Normal", "Simple graphics", "Software drawing", "No effects", "Lower resolution", "CPU canvas", "Hardware layer"};
+    static final String[] QUERY = {"", "?gfx=1", "", "?nofx=1", "?lowres=1", "?cpu=1", ""};
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -37,16 +40,20 @@ public class MainActivity extends AppCompatActivity {
         // If the last run died during start-up, show what happened instead of starting the game again.
         String problem = App.previousRunProblem(this);
         if (problem != null) { showReport(problem); return; }
+        // Test builds: while a graphics test mode is on, let the tester pick a mode on every launch.
+        if (BuildConfig.DEBUG && getSharedPreferences("diag", 0).getInt("gfx", 0) != 0 && !picked) {
+            showReport("Graphics test mode is on: " + MODES[getSharedPreferences("diag", 0).getInt("gfx", 0)] + ". Pick a mode to try.\n\n" + App.exitReasons(this)); return; }
         App.startBoot(this);
         final boolean safe = getSharedPreferences("diag", 0).getBoolean("noAds", false);
         final int gfx = getSharedPreferences("diag", 0).getInt("gfx", 0);
-        App.mark(this, "onCreate" + (safe ? " (ads off)" : "") + (gfx == 1 ? " SIMPLE GRAPHICS" : gfx == 2 ? " SOFTWARE DRAWING" : ""));
+        App.mark(this, "onCreate" + (safe ? " (ads off)" : "") + (gfx > 0 && gfx < MODES.length ? " MODE: " + MODES[gfx] : ""));
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         web = new WebView(this);
         App.mark(this, "WebView created");
         try { if (Build.VERSION.SDK_INT >= 26) { android.content.pm.PackageInfo wp = WebView.getCurrentWebViewPackage();
             if (wp != null) App.mark(this, "WebView " + wp.packageName + " " + wp.versionName); } } catch (Throwable ignored) { }
         if (gfx == 2) web.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        if (gfx == 6) web.setLayerType(View.LAYER_TYPE_HARDWARE, null);
         web.setBackgroundColor(0xFF000000);
         setContentView(web);
         hideSystemBars();
@@ -105,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             web.addJavascriptInterface(monetize, "HTRNative");
         } catch (Throwable t) { monetize = null; App.record(this, "Ads/billing setup failed", t); }
         App.mark(this, monetize != null ? "ads object ready" : "ads skipped");
-        web.loadUrl("file:///android_asset/index.html" + (gfx == 1 ? "?gfx=1" : ""));
+        web.loadUrl("file:///android_asset/index.html" + (gfx > 0 && gfx < QUERY.length ? QUERY[gfx] : ""));
         App.mark(this, "page loading");
         if (monetize != null) {
             try { monetize.start(); App.mark(this, "ads started"); } catch (Throwable t) { App.record(this, "Ads/billing start failed", t); }
@@ -132,27 +139,28 @@ public class MainActivity extends AppCompatActivity {
         title.setText("Hold the Road closed last time. Please send this report to the developer.");
         title.setTextColor(0xFFF6E7C4); title.setTextSize(16);
         col.addView(title);
-        android.widget.LinearLayout row = new android.widget.LinearLayout(this);
-        row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        String[] labels = {"Copy report", "Try again", "Simple graphics", "Software drawing"};
-        for (int k = 0; k < 4; k++) {
+        String[] labels = {"Copy report", "Normal", "No effects", "Lower resolution", "CPU canvas", "Hardware layer", "Simple graphics", "Software drawing"};
+        final int[] modeOf = {-1, 0, 3, 4, 5, 6, 1, 2};
+        android.widget.LinearLayout row = null;
+        for (int k = 0; k < labels.length; k++) {
+            if (k % 4 == 0) { row = new android.widget.LinearLayout(this); row.setOrientation(android.widget.LinearLayout.HORIZONTAL); col.addView(row); }
             android.widget.Button b = new android.widget.Button(this);
-            b.setText(labels[k]);
-            final int which = k;
+            b.setText(labels[k]); b.setAllCaps(false);
+            final int mode = modeOf[k];
             b.setOnClickListener(v -> {
-                if (which == 0) {
+                if (mode < 0) {
                     ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                     if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road report", text));
                     android.widget.Toast.makeText(this, "Report copied", android.widget.Toast.LENGTH_SHORT).show();
                 } else {
-                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", false).putInt("gfx", which - 1).apply();
+                    getSharedPreferences("diag", 0).edit().putBoolean("noAds", false).putInt("gfx", mode).apply();
                     App.bootOk(this);
+                    picked = true;
                     recreate();
                 }
             });
-            row.addView(b);
+            row.addView(b, new android.widget.LinearLayout.LayoutParams(0, -2, 1f));
         }
-        col.addView(row);
         android.widget.ScrollView sv = new android.widget.ScrollView(this);
         TextView tv = new TextView(this);
         tv.setText(text); tv.setTextColor(0xFFE8DCC0); tv.setTextSize(11); tv.setTextIsSelectable(true);
