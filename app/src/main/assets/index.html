@@ -684,6 +684,10 @@ body{background:#1c140c}
 .mapknobs .knob.big svg{width:max(1.15em,17px);height:max(1.15em,17px)}
 .hud.tr .knob,.mapknobs .knob{position:relative}
 .hud.tr .knob::after,.mapknobs .knob::after{content:'';position:absolute;left:-3px;right:-3px;top:-6px;bottom:-10px;border-radius:12px}
+
+/* boss bar: one line; the title drops when the strip beside the wave pennant is narrow */
+#bossbar .bn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bossbar.tight .bn i{display:none}
 </style>
 </head><body>
 
@@ -3220,7 +3224,7 @@ function updateUI(){
   else{T='Sound the Bell';Sb='+'+Math.ceil(S.nextTimer*1.5)+' gold for haste';live=true;}
   const key=T+Sb+dis+live;if(key!==lastBell){$('bellT').textContent=T;$('bellS').textContent=Sb;$('bell').disabled=dis;$('bell').classList.toggle('live',live);lastBell=key;}
   const boss=S.enemies.find(e=>e.boss&&!e.dead);const bb=$('bossbar');
-  if(boss){if(bb.hidden)bb.hidden=false;const nm=boss.boss.name+'|'+boss.boss.title;if(nm!==lastBoss){$('bbName').innerHTML=boss.boss.name+' <i>'+boss.boss.title+'</i>';lastBoss=nm;}{const f=$('bbFill'),v=Math.round(clamp(boss.hp/boss.max,0,1)*1000)/10;if(f._w!==v){f.style.width=v+'%';f._w=v;}}}else if(!bb.hidden)bb.hidden=true;
+  if(boss){const nm=boss.boss.name+'|'+boss.boss.title;if(nm!==lastBoss){$('bbName').innerHTML=boss.boss.name+' <i>'+boss.boss.title+'</i>';lastBoss=nm;if(!bb.hidden)placeBossBar();}if(bb.hidden){bb.hidden=false;placeBossBar();}{const f=$('bbFill'),v=Math.round(clamp(boss.hp/boss.max,0,1)*1000)/10;if(f._w!==v){f.style.width=v+'%';f._w=v;}}}else if(!bb.hidden)bb.hidden=true;
   const m=S.menu;let html='';
   if(m){if(m.tower){const t=m.tower,D=TOWERS[t.type],st=TS(t);
       if(m.sel==='brA'||m.sel==='brB'){const B=D.branches[m.sel==='brA'?'a':'b'];html=`<span class="t">${B.name}</span><span class="l">${B.cost} GOLD</span><span class="d">${B.desc}</span>`+statLine(st,B);}
@@ -4040,13 +4044,15 @@ const MODES={
   endless:{n:'Endless',d:'The waves never stop. How long can you hold?'}
 };
 const IRON_T=[['archer','barracks'],['barracks','trebuchet'],['chapel','barracks'],['archer','chapel']];
-function ironTowers(i){return IRON_T[i%4];}
+const IRON_PAIR={12:['archer','chapel'],16:['chapel','barracks']}; /* Lust and Heresy are thick with shades and risen: they need holy fire, not just arrows and pikes */
+const IRON_ROAD={4:.7,8:.72,9:.6,12:.72,13:.78,15:.5,16:.6,18:.5,19:.45}; /* how big the Iron column is on each road (Deep Mine, Wrath, Heresy and the King's Lair were out of reach) */
+function ironTowers(i){return IRON_PAIR[i]||IRON_T[i%4];}
 function ensureModeSave(){for(const k of['heroic','iron'])if(!Array.isArray(SAVE[k])||SAVE[k].length!==20)SAVE[k]=Array(20).fill(0);if(!Array.isArray(SAVE.endless)||SAVE.endless.length!==20)SAVE.endless=Array(20).fill(0);}
 function bonusStars(){ensureModeSave();return SAVE.heroic.reduce((a,b)=>a+b,0)+SAVE.iron.reduce((a,b)=>a+b,0);}
 function modeOpen(md,i){if(md==='campaign')return true;return SAVE.unlockAll||SAVE.stars[i]>0;}
 function applyMode(md,i){ensureModeSave();LV.mode=md;
   if(md==='heroic'){const a=MAPS[i].act;WK.mode=WK.HERO||[1.9,1.75,1.4][a]*({16:.6,18:.6}[i]||1);S.hpMode=WK.HEROHP||1.12;LV.waves=genWaves(i);WK.mode=1;S.lives=5;S.maxLives=5;}
-  else if(md==='iron'){const a=MAPS[i].act;WK.mode=WK.IRON||(i<5?.7:[.8,.8,.68][a])*({4:.7,8:.72,12:.72,13:.78,15:.72,16:.68,18:.5,19:.78}[i]||1);const ws=genWaves(i);WK.mode=1;const merged=[];let t=0;for(let wi=0;wi<ws.length;wi++){const w=ws[wi];let end=0;for(const g of w){merged.push([g[0],g[1],g[2],t+g[3]*.8,+((g[4]||1)*(1+wi*(WK.H1+i*WK.H3)+Math.max(0,wi-3)*(WK.H4||0)*i/19)).toFixed(2)]);end=Math.max(end,g[3]*.8+g[1]*g[2]);}t+=end*.9+7;}LV.waves=[merged];S.lives=3;S.maxLives=3;S.gold=Math.round(S.gold*2.2);}
+  else if(md==='iron'){const a=MAPS[i].act;WK.mode=WK.IRON||(i<5?.7:[.8,.8,.68][a])*(IRON_ROAD[i]||1);const ws=genWaves(i);WK.mode=1;const merged=[];let t=0;for(let wi=0;wi<ws.length;wi++){const w=ws[wi];let end=0;for(const g of w){merged.push([g[0],g[1],g[2],t+g[3]*.8,+((g[4]||1)*(1+wi*(WK.H1+i*WK.H3)+Math.max(0,wi-3)*(WK.H4||0)*i/19)).toFixed(2)]);end=Math.max(end,g[3]*.8+g[1]*g[2]);}t+=end*.9+7;}LV.waves=[merged];S.lives=3;S.maxLives=3;S.gold=Math.round(S.gold*2.2);}
   else if(md==='endless'){S.lives=20;S.maxLives=20;LV.endR=mulberry(i*977+5);}
   else{S.maxLives=20;if(MAPS[i].act===2)S.hpMode=WK.HELLHP||1;} /* campaign in the Circles: the dead there are a little frailer, so a mixed army can hold */
   updateHud();}
@@ -4675,6 +4681,24 @@ window.REND_EMA=0;
 {const _r=render;render=function(){FIGC.fr++;FIGC.budget=6;const R=cv.width/W;if(R!==FIGC.R)FIGC.R=R;if(FIGC.fr%30===0)figSweep();const t0=performance.now();rscTick(t0);try{return _r.apply(this,arguments);}finally{const d=performance.now()-t0;REND_EMA+=(Math.min(40,d)-REND_EMA)*.05;}};}
 {const _sm=setMode;setMode=function(m){const was=mode;_sm.apply(this,arguments);if(m!=='battle'){figFreeAll();if(was==='battle'){RSC.noDown=false;RSC.trial=null;RSC.win=[];resize();}}};}
 {const _sl=startLevel;startLevel=function(){figFreeAll();RSC.trial=null;RSC.win=[];RSC.noDown=false;const r=_sl.apply(this,arguments);resize();return r;};}
+
+/* ================= LAYOUT FIXES =================
+   The boss bar sits in the free strip between the lives and wave plaque and the corner buttons,
+   so on small phones it never covers the wave pennant. If the boss's full title doesn't fit, only the name shows. */
+function placeBossBar(){const bb=$('bossbar');if(!bb||bb.hidden)return;
+  bb.style.left=bb.style.width=bb.style.transform=bb.style.top='';bb.classList.remove('tight');
+  const tl=document.querySelector('#battleHud .hud.tl'),tr=document.querySelector('#battleHud .hud.tr'),host=bb.offsetParent;if(!tl||!tr||!host)return;
+  const hr=host.getBoundingClientRect(),r=bb.getBoundingClientRect(),a=tl.getBoundingClientRect(),c=tr.getBoundingClientRect(),L=a.right+10,R=c.left-10;
+  if(r.left<L||r.right>R){
+    if(R-L>=150){const w=Math.min(r.width,R-L);bb.style.width=w+'px';bb.style.left=(L-hr.left+(R-L-w)/2)+'px';bb.style.transform='none';}
+    else bb.style.top=(Math.max(a.bottom,c.bottom)+8-hr.top)+'px';} /* no room beside the pennant (tall screens): the bar sits under the top row */
+  const n=$('bbName');if(n&&n.scrollWidth>n.clientWidth+1)bb.classList.add('tight');}
+addEventListener('resize',()=>setTimeout(placeBossBar,80));
+/* the wave pennant widens as the count grows ("99 / ∞" to "100 / ∞"), so the bar is placed again whenever the corners change size */
+if(window.ResizeObserver){const ro=new ResizeObserver(()=>placeBossBar());for(const q of['#battleHud .hud.tl','#battleHud .hud.tr']){const e=document.querySelector(q);if(e)ro.observe(e);}}
+
+/* An achievement that pops just before the end screen opens moves to the corner instead of covering the result banner. */
+{const es=$('endScreen');if(es&&window.MutationObserver)new MutationObserver(()=>{const el=$('achPop');if(el&&!es.hidden&&el.classList.contains('show'))el.classList.add('low');}).observe(es,{attributes:true,attributeFilter:['hidden']});}
 
 })();
 </script>
