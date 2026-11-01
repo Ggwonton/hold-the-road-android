@@ -10,8 +10,19 @@ android {
         applicationId "com.ashenlantern.holdtheroad"
         minSdk 24
         targetSdk 36
-        versionCode 3
-        versionName "1.0.1"
+        versionCode 4
+        versionName "1.1"
+
+        // AdMob ids: set ADMOB_APP_ID and ADMOB_INTERSTITIAL_ID in gradle.properties.
+        // Until then Google's official test ids are used, which only ever show test ads.
+        def admobApp = project.findProperty('ADMOB_APP_ID') ?: 'ca-app-pub-3940256099942544~3347511713'
+        def admobInter = project.findProperty('ADMOB_INTERSTITIAL_ID') ?: 'ca-app-pub-3940256099942544/1033173712'
+        manifestPlaceholders = [admobAppId: admobApp]
+        buildConfigField 'String', 'ADMOB_INTERSTITIAL_ID', "\"${admobInter}\""
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     signingConfigs {
@@ -41,6 +52,9 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'com.google.android.gms:play-services-ads:24.4.0'
+    implementation 'com.google.android.ump:user-messaging-platform:3.2.0'
+    implementation 'com.android.billingclient:billing:8.0.0'
     // align old kotlin-stdlib-jdk7/jdk8 pulled in transitively with the main stdlib
     implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
 }

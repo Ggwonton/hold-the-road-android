@@ -768,7 +768,9 @@ body{background:#1c140c}
         <label class="srow"><span>Screen shake</span><input class="tog" type="checkbox" id="optShake"></label>
         <label class="srow" id="fsRow"><span>Full screen<small>Fills the whole screen on phones and tablets</small></span><input class="tog" type="checkbox" id="optFull"></label>
         <label class="srow"><span>Elite name plates</span><input class="tog" type="checkbox" id="optNames"></label>
-        <label class="srow"><span>Unlock every road<small>For testing the later maps</small></span><input class="tog" type="checkbox" id="optUnlock"></label>
+        <label class="srow" id="unlockRow"><span>Unlock every road<small>For testing the later maps</small></span><input class="tog" type="checkbox" id="optUnlock"></label>
+        <div class="srow" id="adsRow" hidden><span>Remove ads<small id="adsTxt">One purchase, no more ads between battles</small></span><button class="btn2" id="adsBtn">Remove ads</button></div>
+        <div class="srow" id="privRow" hidden><span>Ad privacy<small>Change your ad consent choices</small></span><button class="btn2" id="privBtn">Privacy options</button></div>
         <div class="srow"><span>The story<small>Watch the scenes you have unlocked</small></span><button class="btn2" id="storyBtn">Watch again</button></div>
         <div class="srow"><span>Progress<small id="progTxt"></small></span><button class="btn2" id="resetBtn">Erase progress</button></div>
         <div class="confirm" id="resetAsk" hidden>Erase every star? <button class="btn2" id="resetYes">Erase</button><button class="btn2 ghost" id="resetNo">Keep</button></div>
@@ -4321,6 +4323,34 @@ function openAch(){checkAch();let v=$('achV');if(!v){v=document.createElement('d
 {const _e=endGame;endGame=function(win){const lost=(S.maxLives||20)-S.lives;stAdd('battles');stAdd('lost',Math.max(0,lost));if(win&&S.lives>=(S.maxLives||20)&&LV.mode!=='endless')stAdd('flawless');_e(win);setTimeout(checkAch,win?2600:1400);};}
 {const _u=buyUp;buyUp=function(){_u();checkAch();};}
 {const _sm=setMode;setMode=function(m){_sm(m);if(m==='map')setTimeout(checkAch,1200);};}
+
+
+/* ================= ADS AND "REMOVE ADS" (Android only) ================= */
+// The Android wrapper exposes window.HTRNative and calls back into window.htrNative(event, value).
+var MON={on:!!window.HTRNative,price:'',privacy:false,fromBattle:false,since:0,last:0,showing:false};
+function noAds(){return !!SAVE.noAds;}
+function monRefresh(){const row=$('adsRow');if(!row)return;row.hidden=!MON.on;$('privRow').hidden=!(MON.on&&MON.privacy);
+  if(window.__ANDROID__&&$('unlockRow'))$('unlockRow').hidden=true;
+  const b=$('adsBtn'),t=$('adsTxt');if(noAds()){b.textContent='Purchased';b.disabled=true;t.textContent='Ads are gone for good. Thank you for supporting Ashen Lantern!';}
+  else{b.disabled=false;b.textContent=MON.price?'Remove ads · '+MON.price:'Remove ads';t.textContent='One purchase, no more ads between battles';}}
+window.htrNative=function(ev,val){
+  if(ev==='noads'){const was=!!SAVE.noAds;SAVE.noAds=!!val;writeSave();if(!was&&SAVE.noAds){toast('Ads removed. Thank you!');AU.play&&AU.play('chime');}}
+  else if(ev==='price')MON.price=val||'';
+  else if(ev==='privacy')MON.privacy=!!val;
+  else if(ev==='adclosed'){MON.showing=false;}
+  else if(ev==='buyfail'&&val)toast(val,true);
+  monRefresh();};
+// When can an ad play: never in the first three roads, never twice within three minutes, at most every second battle.
+function adDue(){return MON.on&&!noAds()&&!MON.showing&&roadsDone()>=3&&MON.since>=2&&Date.now()-MON.last>180000;}
+function maybeShowAd(){if(!adDue())return;if(typeof STO!=='undefined'&&STO)return;
+  try{if(window.HTRNative.showInterstitial()){MON.showing=true;MON.since=0;MON.last=Date.now();}}catch(e){}}
+{const _e=endGame;endGame=function(win){_e(win);MON.since++;MON.fromBattle=true;};}
+{const _sm=setMode;setMode=function(m){_sm(m);if(m==='map'&&MON.fromBattle){MON.fromBattle=false;setTimeout(()=>{if(mode==='map'&&$('brief').hidden&&!(typeof storyPending==='function'&&storyPending()))maybeShowAd();},900);}};}
+{const _o=openSettings;openSettings=function(){_o.apply(this,arguments);monRefresh();try{MON.on&&window.HTRNative.ready();}catch(e){}};}
+if($('adsBtn'))$('adsBtn').onclick=()=>{AU.play&&AU.play('click');if(!MON.on||noAds())return;try{window.HTRNative.buyNoAds();}catch(e){toast('The store is not available right now',true);}};
+if($('privBtn'))$('privBtn').onclick=()=>{AU.play&&AU.play('click');try{window.HTRNative.privacyOptions();}catch(e){}};
+monRefresh();
+try{MON.on&&window.HTRNative.ready();}catch(e){}
 
 })();
 </script>

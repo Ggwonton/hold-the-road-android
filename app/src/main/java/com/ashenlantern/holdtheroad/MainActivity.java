@@ -21,6 +21,7 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 public class MainActivity extends AppCompatActivity {
     private WebView web;
+    private Monetize monetize;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -58,7 +59,10 @@ public class MainActivity extends AppCompatActivity {
                 return false;
             }
         });
+        monetize = new Monetize(this, web);
+        web.addJavascriptInterface(monetize, "HTRNative");
         web.loadUrl("file:///android_asset/index.html");
+        monetize.start();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -103,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (monetize != null) monetize.destroy();
         if (web != null) web.destroy();
         super.onDestroy();
     }
