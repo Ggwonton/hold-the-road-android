@@ -3277,12 +3277,12 @@ $('abOil').onclick=()=>{if(!S||S.over)return;if(S.cdOil>0){toast('The oil is sti
 $('bell').onclick=()=>{if(!S||S.over||S.waveRunning)return;startWave();};
 $('speed').onclick=()=>{if(!S)return;S.speed=S.speed===1?2:1;$('speed').textContent=S.speed+'×';AU.play('click');};
 $('mute').onclick=()=>{AU.on=!AU.on;$('mute').setAttribute('aria-label',AU.on?'Sound on':'Sound off');$('muteIco').innerHTML=AU.on?'<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8c1.5 1.2 1.5 6.8 0 8M18.5 5.5c3 2.6 3 10.4 0 13" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>':'<path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';if(AU.mus)AU.mus.gain.value=AU.on?SAVE.music*.55:0;};
-$('pause').onclick=()=>{if(!S||S.over)return;S.paused=true;$('pauseScreen').hidden=false;};
-$('resume').onclick=()=>{S.paused=false;$('pauseScreen').hidden=true;};
-$('restart').onclick=()=>{$('pauseScreen').hidden=true;const i=S.mi;wipeTo(()=>startLevel(i));};
+$('pause').onclick=()=>{if(!S||S.over||WIPING)return;S.paused=true;$('pauseScreen').hidden=false;};
+$('resume').onclick=()=>{$('pauseScreen').hidden=true;if(S)S.paused=false;};
+$('restart').onclick=()=>{$('pauseScreen').hidden=true;if(!S)return;const i=S.mi,md=LV.mode;wipeTo(()=>startLevel(i,md));}; /* a Heroic, Iron or Endless road restarts in the same mode */
 $('quitMap').onclick=()=>{$('pauseScreen').hidden=true;wipeTo(()=>setMode('map'));};
-$('endAgain').onclick=()=>{const i=S.mi,md=LV.mode;wipeTo(()=>{$('endScreen').hidden=true;startLevel(i,md);});};
-$('endMap').onclick=()=>{const i=S.mi;wipeTo(()=>{$('endScreen').hidden=true;setMode('map');});const nx=Math.min(19,i+1);if(unlocked(nx)&&SAVE.stars[nx]===0)setTimeout(()=>{if(mode==='map'&&$('brief').hidden)openBrief(nx);},900);};
+$('endAgain').onclick=()=>{if(!S){$('endScreen').hidden=true;return;}const i=S.mi,md=LV.mode;wipeTo(()=>{$('endScreen').hidden=true;startLevel(i,md);});};
+$('endMap').onclick=()=>{if(!S){$('endScreen').hidden=true;setMode('map');return;}const i=S.mi;wipeTo(()=>{$('endScreen').hidden=true;setMode('map');});const nx=Math.min(19,i+1);if(unlocked(nx)&&SAVE.stars[nx]===0)setTimeout(()=>{if(mode==='map'&&$('brief').hidden)openBrief(nx);},900);};
 document.querySelectorAll('.rmlink,.rmsplash').forEach(a=>a.addEventListener('click',e=>{e.stopPropagation();AU.play&&AU.play('click');if(window.__ANDROID__){e.preventDefault();location.href=a.href;}}));
 $('splash').onclick=()=>{AU.init();if(AU.c&&AU.c.state==='suspended')AU.c.resume();applyVolumes();$('splash').hidden=true;setMode('map');AU.play('bell',.6);};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('setV').hidden){$('setV').hidden=true;return;}if(!$('bestV').hidden){$('bestV').hidden=true;return;}if(S){if(S.ability)S.ability=null;else S.menu=null;}else{$('brief').hidden=true;WM.sel=-1;}}
@@ -4044,7 +4044,7 @@ const MODES={
   endless:{n:'Endless',d:'The waves never stop. How long can you hold?'}
 };
 const IRON_T=[['archer','barracks'],['barracks','trebuchet'],['chapel','barracks'],['archer','chapel']];
-const IRON_PAIR={9:['chapel','barracks'],12:['archer','chapel'],16:['chapel','barracks']}; /* the Deep Mine's trolls, and the shades and risen of Lust and Heresy, need holy fire, not just arrows, pikes and stones */
+const IRON_PAIR={8:['chapel','barracks'],9:['chapel','barracks'],12:['archer','chapel'],16:['chapel','barracks']}; /* the risen of the Troll Bridge and the Deep Mine, and the shades of Lust and Heresy, need holy fire, not just arrows, pikes and stones */
 const IRON_ROAD={4:.7,8:.72,9:.6,12:.72,13:.78,15:.5,16:.6,18:.5,19:.45}; /* how big the Iron column is on each road (Deep Mine, Wrath, Heresy and the King's Lair were out of reach) */
 function ironTowers(i){return IRON_PAIR[i]||IRON_T[i%4];}
 function ensureModeSave(){for(const k of['heroic','iron'])if(!Array.isArray(SAVE[k])||SAVE[k].length!==20)SAVE[k]=Array(20).fill(0);if(!Array.isArray(SAVE.endless)||SAVE.endless.length!==20)SAVE.endless=Array(20).fill(0);}
@@ -4699,6 +4699,14 @@ if(window.ResizeObserver){const ro=new ResizeObserver(()=>placeBossBar());for(co
 
 /* An achievement that pops just before the end screen opens moves to the corner instead of covering the result banner. */
 {const es=$('endScreen');if(es&&window.MutationObserver)new MutationObserver(()=>{const el=$('achPop');if(el&&!es.hidden&&el.classList.contains('show'))el.classList.add('low');}).observe(es,{attributes:true,attributeFilter:['hidden']});}
+
+/* Leaving a battle lets go of its tower pictures straight away, instead of holding the last road's towers in memory on the map. */
+{const _sm=setMode;setMode=function(m){const tw=(mode==='battle'&&m!=='battle'&&S&&S.towers)?S.towers.slice():null; /* taken first: leaving the battle clears S */
+  const r=_sm.apply(this,arguments);if(tw)for(const t of tw){if(t._tc){t._tc.width=t._tc.height=0;t._tc=null;}t._tk=null;}return r;};}
+
+/* Leaving a battle always closes its pause and result screens, so neither can linger over the map
+   (a tap on the pause knob during the closing wipe used to leave the pause screen up with no battle behind it). */
+{const _sm=setMode;setMode=function(m){const was=mode,r=_sm.apply(this,arguments);if(was==='battle'&&m!=='battle'){$('pauseScreen').hidden=true;$('endScreen').hidden=true;}return r;};}
 
 })();
 </script>
