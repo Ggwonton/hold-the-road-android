@@ -1865,7 +1865,9 @@ function TS(t){const s=TSbase(t),ty=t.type,u=upLvl(ty);
   if(ty==='archer'){if(u>=1)s.dmg=Math.round(s.dmg*1.15);if(u>=2)s.range=Math.round(s.range*1.1);}
   if(ty==='barracks'){if(u>=1)s.hp=Math.round(s.hp*1.25);if(u>=2)s.respawn=+(s.respawn*.7).toFixed(1);if(u>=3)s.dmg=Math.round(s.dmg*1.25);if(u>=4)s.count=(s.count||3)+1;}
   if(ty==='chapel'){if(u>=1)s.dmg=Math.round(s.dmg*1.15);if(u>=2)s.range=Math.round(s.range*1.12);if(u>=5)s.chain=(s.chain||0)+2;}
-  if(ty==='trebuchet'){if(u>=1)s.dmg=Math.round(s.dmg*1.15);if(u>=2)s.burn=Math.round(s.burn*1.5);if(u>=4)s.rate=+(s.rate*.85).toFixed(2);}
+  if(ty==='trebuchet'){if(u>=1)s.dmg=Math.round(s.dmg*1.15);if(u>=2)s.burn=Math.round(s.burn*1.5);if(u>=4)s.rate=+(s.rate*.85).toFixed(2);
+    /* each stone can only hit so many of the dead: the nearest to where it lands */
+    s.hits=t.branch==='a'?6+(t.blvl||0):t.branch==='b'?3+((t.blvl||0)>=2?1:0):[4,5,6][t.lvl||0];}
   return s;}
 function cdLevy(){return 26*(upLvl('levy')>=3?.7:1);}
 function cdOil(){return 42*(upLvl('oil')>=3?.7:1);}
@@ -2127,7 +2129,7 @@ function updateTowers(dt){
     }else if(t.type==='trebuchet'){
       const flight=1.15;const n=t.branch==='b'?(st.volley||3):1;
       for(let k=0;k<n;k++){const lead=pointAt(e.P,e.blockers.length?e.d:e.d+e.spd*flight*.9+(k-1)*34);const tx=lead.x-lead.ty*e.off,ty=lead.y+lead.tx*e.off;t.face=tx>=t.x?1:-1;
-        S.later.push({at:.32+k*.05,fn:()=>{shoot({kind:'rock',x0:t.x+t.face*30,y0:t.y-70,tx,ty,t:0,T:flight+k*.06,dmg:st.dmg,burn:st.burn,burnR:st.burnR,lvl:t.branch?2:t.lvl,pitch:t.branch==='a',small:n>1});if(k===0)AU.play('whoosh',.7);}});}
+        S.later.push({at:.32+k*.05,fn:()=>{shoot({kind:'rock',x0:t.x+t.face*30,y0:t.y-70,tx,ty,t:0,T:flight+k*.06,dmg:st.dmg,burn:st.burn,burnR:st.burnR,lvl:t.branch?2:t.lvl,pitch:t.branch==='a',small:n>1,hits:st.hits||99});if(k===0)AU.play('whoosh',.7);}});}
     }
   }
 }
@@ -2217,7 +2219,8 @@ function updateProj(dt){
       p.t+=dt;const k=Math.min(1,p.t/p.T);p.x=lerp(p.x0,p.tx,k);p.gy=lerp(p.y0+60,p.ty,k);p.y=lerp(p.y0,p.ty,k)-Math.sin(k*Math.PI)*190;p.rot=(p.rot||0)+dt*6;
       if((p.lvl>0||p.pitch)&&rand()<.7)part({x:p.x,y:p.y,vx:0,vy:-15,life:.5,size:6,col:p.pitch?'rgba(255,120,40,.5)':'rgba(60,50,40,.4)',kind:p.pitch?'glow':'smoke',drag:1});
       if(k>=1){p.done=true;const R=(p.small?50:70)*(upLvl('trebuchet')>=3?1.25:1),stun=upLvl('trebuchet')>=5;
-        for(const o of S.enemies)if(!o.dead){const dd=dist(o.x,o.y,p.tx,p.ty);if(dd<R){damage(o,p.dmg*(dd<R*.43?1:.6),'phys');if(stun&&!o.boss)o.stun=.7;}}
+        const hit=[];for(const o of S.enemies)if(!o.dead){const dd=dist(o.x,o.y,p.tx,p.ty);if(dd<R)hit.push([dd,o]);}
+        hit.sort((a,b)=>a[0]-b[0]);for(let j=0;j<hit.length&&j<(p.hits||99);j++){const dd=hit[j][0],o=hit[j][1];damage(o,p.dmg*(dd<R*.43?1:.6),'phys');if(stun&&!o.boss)o.stun=.7;}
         S.burns.push({x:p.tx,y:p.ty,r:p.burnR,t:(p.pitch?5:2.6+p.lvl*.6),max:(p.pitch?5:2.6+p.lvl*.6),dps:p.burn});
         S.shake=Math.max(S.shake,p.small?2:3.5);AU.play(p.pitch?'fire':'boom',.6);
         part({x:p.tx,y:p.ty,life:.5,size:R*1.1,col:'rgba(120,96,64,.7)',kind:'ring'});for(let i=0;i<(p.small?5:10);i++){const an=rand()*7;part({x:p.tx+Math.cos(an)*R*.3,y:p.ty+Math.sin(an)*R*.15,vx:Math.cos(an)*90,vy:Math.sin(an)*40-10,life:.7+rand()*.4,size:8+rand()*8,col:'rgba(150,126,92,.35)',kind:'smoke',drag:3});}
@@ -3264,7 +3267,7 @@ function updateHud(){if(!S)return;$('gold').textContent=Math.floor(S.gold);$('li
 let lastBell='',lastScroll='',lastBoss='';
 function statLine(st,nx){const ch=k=>nx&&nx[k]!=null&&nx[k]!==st[k]?` <em>→ ${nx[k]}</em>`:'';
   if(st.hp)return`<span class="st"><span>Health ${st.hp}${ch('hp')}</span><span>Damage ${st.dmg}${ch('dmg')}</span><span>${nx&&nx.kind||st.kind}</span></span>`;
-  return`<span class="st"><span>Damage ${st.dmg}${ch('dmg')}</span><span>Range ${st.range}${ch('range')}</span><span>${nx&&nx.kind||st.kind}</span></span>`;}
+  return`<span class="st"><span>Damage ${st.dmg}${ch('dmg')}</span><span>Range ${st.range}${ch('range')}</span>${st.hits?`<span>Hits ${st.hits}${ch('hits')}</span>`:''}<span>${nx&&nx.kind||st.kind}</span></span>`;}
 /* HUD writes only when a value changes: rewriting the same text every frame made the phone redo the page layout 60 times a second */
 function setTx(el,v){v=String(v);if(el&&el._t!==v){el.textContent=v;el._t=v;}}
 function setP(el,v){v=Math.round(v);if(el&&el._p!==v){el.style.setProperty('--p',v+'%');el._p=v;}}
@@ -3285,7 +3288,7 @@ function updateUI(){
   if(boss){const nm=boss.boss.name+'|'+boss.boss.title;if(nm!==lastBoss){$('bbName').innerHTML=boss.boss.name+' <i>'+boss.boss.title+'</i>';lastBoss=nm;if(!bb.hidden)placeBossBar();}if(bb.hidden){bb.hidden=false;placeBossBar();}{const f=$('bbFill'),v=Math.round(clamp(boss.hp/boss.max,0,1)*1000)/10;if(f._w!==v){f.style.width=v+'%';f._w=v;}}}else if(!bb.hidden)bb.hidden=true;
   const m=S.menu;let html='';
   if(m){if(m.tower){const t=m.tower,D=TOWERS[t.type],st=TS(t);
-      if(m.sel==='brA'||m.sel==='brB'){const B=D.branches[m.sel==='brA'?'a':'b'];html=`<span class="t">${B.name}</span><span class="l">${B.cost} GOLD</span><span class="d">${B.desc}</span>`+statLine(st,B);}
+      if(m.sel==='brA'||m.sel==='brB'){const B=D.branches[m.sel==='brA'?'a':'b'];html=`<span class="t">${B.name}</span><span class="l">${B.cost} GOLD</span><span class="d">${B.desc}</span>`+statLine(st,Object.assign({},B,TS(Object.assign({},t,{branch:m.sel==='brA'?'a':'b',blvl:0}))));}
       else if(m.sel==='up'){const nx=TS(Object.assign({},t,{lvl:t.lvl+1}));html=`<span class="t">${D.name}</span><span class="l">LEVEL ${t.lvl+1} → ${t.lvl+2}</span><span class="d">${D.desc[t.lvl+1]}</span>`+statLine(st,nx);}
       else if(m.sel==='bup'&&t.branch){const B=D.branches[t.branch],r=t.blvl||0,nx=TS(Object.assign({},t,{blvl:r+1}));html=`<span class="t">${BRANK_NAMES[t.type][t.branch][r]}</span><span class="l">RANK ${r} → ${r+1} · ${brankCost(t,r)} GOLD</span><span class="d">${BRANK_DESC[t.type][t.branch][r]}</span>`+statLine(st,nx);}
       else if(t.branch){const B=D.branches[t.branch],r=t.blvl||0;html=`<span class="t">${B.name}</span><span class="l">${r>=3?'FULLY RANKED':'RANK '+r+' OF 3'}</span><span class="d">${r?BRANK_DESC[t.type][t.branch][r-1]:B.desc}</span>`+statLine(st);}
@@ -4109,7 +4112,7 @@ function ironTowers(i){return IRON_PAIR[i]||IRON_T[i%4];}
 /* Heroic: how many more of the dead come (per act), how much tougher they are, and per-road adjustments.
    Tuned so most roads cost a mixed army lives or the road, while every road can still be won. */
 const HERO_N=[3.2,2.45,1.5],HERO_HP=[1.5,1.35,1.18],
-  HERO_ROAD={0:1.15,1:1.35,2:1.3,4:1.15,8:.9,9:.65,11:1.1,12:1.25,13:1.5,14:1.5,16:.5,17:1.1,18:.6},HERO_HP_ROAD={9:1.25};
+  HERO_ROAD={0:1.15,1:1.35,2:1.3,4:1.15,8:.9,9:.65,11:1.1,12:1.25,13:1.5,14:1.5,16:.45,17:1.1,18:.6},HERO_HP_ROAD={9:1.25};
 function ensureModeSave(){for(const k of['heroic','iron'])if(!Array.isArray(SAVE[k])||SAVE[k].length!==20)SAVE[k]=Array(20).fill(0);if(!Array.isArray(SAVE.endless)||SAVE.endless.length!==20)SAVE.endless=Array(20).fill(0);}
 function bonusStars(){ensureModeSave();return SAVE.heroic.reduce((a,b)=>a+b,0)+SAVE.iron.reduce((a,b)=>a+b,0);}
 function modeOpen(md,i){if(md==='campaign')return true;return SAVE.unlockAll||SAVE.stars[i]>0;}
@@ -4775,6 +4778,25 @@ if(window.ResizeObserver){const ro=new ResizeObserver(()=>placeBossBar());for(co
 /* Leaving a battle always closes its pause and result screens, so neither can linger over the map
    (a tap on the pause knob during the closing wipe used to leave the pause screen up with no battle behind it). */
 {const _sm=setMode;setMode=function(m){const was=mode,r=_sm.apply(this,arguments);if(was==='battle'&&m!=='battle'){$('pauseScreen').hidden=true;$('endScreen').hidden=true;}return r;};}
+
+/* The ring of tower buttons is placed clear of the corner HUD (lives and wave, sound/speed/pause, spells, the bell)
+   and the screen edges, which used to swallow taps on plots near the edges. Worked out once when the ring opens,
+   as close to the plot as it fits. */
+function hudRectsWorld(){const r=cv.getBoundingClientRect();if(!r.width)return[];const sx=W/r.width,sy=H/r.height,out=[];
+  for(const q of['#battleHud .hud.tl','#battleHud .hud.tr','#battleHud .hud.bl','#battleHud .hud.br']){const e=document.querySelector(q);if(!e||e.hidden)continue;
+    for(const k of e.children){if(k.hidden||!k.getClientRects().length)continue;const b=k.getBoundingClientRect();if(b.width<2||b.height<2)continue;
+      out.push({l:(b.left-r.left)*sx-6,r:(b.right-r.left)*sx+6,t:(b.top-r.top)*sy-6,b:(b.bottom-r.top)*sy+6});}}
+  return out;}
+function ringOffsets(m){if(m.plot&&!m.plot.tower)return BUILD_SLOTS.map(s=>[s[1],s[2]]);const t=m.tower;
+  return t.branch||t.lvl<2?[[0,-74],[0,66]]:[[-56,-62],[56,-62],[0,66]];}
+function ringFits(cx,cy,offs,rects){for(const [dx,dy] of offs){const x=cx+dx,y=cy+dy,l=x-38,r=x+38,t=y-42,b=y+44; /* the button, its price tag below and the confirm note above */
+    if(l<2||r>W-2||t<2||b>H-2)return false;for(const q of rects)if(l<q.r&&r>q.l&&t<q.b&&b>q.t)return false;}return true;}
+function menuCenter(){const m=S.menu;const t=m.tower,key=(t?(t.branch?'b':t.lvl<2?'u':'2'):'p')+'|'+cv.width+'x'+cv.height;
+  if(m._c&&m._ck===key)return m._c;
+  const offs=ringOffsets(m),rects=hudRectsWorld();let best=null,bd=1e18;
+  for(let dy=-400;dy<=400;dy+=8)for(let dx=-560;dx<=560;dx+=8){const d=dx*dx+dy*dy;if(d>=bd)continue;if(ringFits(m.x+dx,m.y+dy,offs,rects)){bd=d;best={cx:m.x+dx,cy:m.y+dy};}}
+  if(!best)best={cx:clamp(m.x,90,W-90),cy:clamp(m.y,110,H-110)};
+  m._c=best;m._ck=key;return best;}
 
 })();
 </script>
