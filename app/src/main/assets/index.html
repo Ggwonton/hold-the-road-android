@@ -691,6 +691,53 @@ body{background:#1c140c}
 /* no tap flash: Android's web view paints a translucent blue box over anything tapped (map, road nodes, cards, toggles) unless this is cleared everywhere */
 html,body,*,*::before,*::after{-webkit-tap-highlight-color:transparent!important}
 canvas{outline:none}
+
+/* ===== road briefing as a war table: always centred, the road on the left, your choices on the right ===== */
+#brief,#brief.left{left:50%;right:auto;top:50%;transform:translate(-50%,-50%);width:min(94%,calc(var(--u)*900));max-height:calc(100% - 1.2em);overflow-y:auto;overscroll-behavior:contain;
+  display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.3fr);gap:0 1.2em;align-items:start;padding:.95em 1.1em .85em;
+  box-shadow:inset 0 0 0 3px #fff,0 8px 0 var(--ink),0 20px 40px rgba(0,0,0,.5),0 0 0 100vmax rgba(10,6,2,.5)}
+#brief .bL,#brief .bR{display:flex;flex-direction:column;gap:.4em;min-width:0}
+#brief .bR{gap:.45em}
+#brief .bThumb{width:100%;max-width:none}
+#brief .reg{font-size:.62em}
+#brief h2{font-size:1.7em}
+#brief p{font-size:.88em}
+#brief .bStarRow{display:flex;align-items:center;gap:.5em;font-family:var(--display);font-size:.85em;color:#5a3418}
+#brief .bStarRow .stars svg{width:1.45em;height:1.45em}
+#brief .bSec{font-family:var(--display);font-size:.7em;letter-spacing:.14em;text-transform:uppercase;color:#8a3a1e;display:flex;align-items:center;gap:.6em;margin:.1em 0 -.15em}
+#brief .bSec::after{content:'';flex:1;height:2px;border-radius:2px;background:linear-gradient(90deg,rgba(138,58,30,.45),rgba(138,58,30,0))}
+#brief .bSec small{font-family:var(--body);font-weight:700;font-size:.95em;letter-spacing:0;text-transform:none;color:#a07850}
+#brief .bFoes{padding:.25em .2em .2em;gap:.1em}
+#brief .foe{width:4.8em}#brief .foe canvas{width:4em;height:4em}#brief .foe span{display:none}
+#brief .bFoeInfo{min-height:0;padding:.3em .6em}
+#brief .fi-note{font-size:.74em}#brief .fi-stats{font-size:.6em}
+#brief .fi-hint{grid-column:1/-1;font-family:var(--body);font-weight:700;font-style:italic;font-size:.8em;color:#8a6a48;padding:.15em 0}
+#brief .bSpells{display:grid;grid-template-columns:1fr 1fr;gap:.45em;margin:0}
+.bslotT{display:flex;align-items:center;gap:.45em;min-width:0;padding:.3em .7em .3em .3em;border:3px solid var(--ink);border-radius:.7em;background:linear-gradient(#5a3a9a,#40287a);color:#fff;font-family:var(--display);font-size:.95em;box-shadow:0 3px 0 var(--ink);cursor:pointer;text-align:left}
+.bslotT .ico{width:1.8em;height:1.8em;flex:none;display:grid;place-items:center;background:radial-gradient(circle,#7a5ac8,#2a1858);border-radius:50%;border:2px solid var(--ink)}
+.bslotT .ico svg{width:1.3em;height:1.3em}
+.bslotT .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bslotT:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.bslotT.empty{background:linear-gradient(#8a7a6a,#6a5a4a)}
+#brief .bModes{margin:0;gap:0;border:3px solid var(--ink);border-radius:.7em;overflow:hidden;box-shadow:0 3px 0 var(--ink)}
+#brief .bmode{border:0;border-radius:0;box-shadow:none;border-left:2px solid var(--ink);padding:.4em .2em .35em;font-size:.88em;transform:none;display:flex;flex-direction:column;align-items:center;gap:.12em}
+#brief .bmode:first-child{border-left:0}
+#brief .bmode.on{transform:none;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+#brief .bmode em{font-style:normal;font-family:var(--body);font-weight:800;font-size:.72em;color:#ffe9c8;line-height:1;text-shadow:none}
+#brief .bmode em.st{font-family:var(--display);font-weight:400;font-size:.9em;color:#ffd24a;letter-spacing:.05em;text-shadow:0 1px 0 var(--ink)}
+#brief .bmode em.st u{text-decoration:none;color:rgba(40,20,8,.35);text-shadow:none}
+#brief .bmode em.heroic{color:#ffd0c0}#brief .bmode em.iron{color:#d8e8ff}
+#brief .bmode svg{width:.95em;height:.95em;color:#f6e6c6}
+#brief .bmode.locked{filter:grayscale(.85) brightness(.85)}
+#brief .bModeInfo{min-height:0;font-size:.82em}
+#brief .row{margin-top:.2em;padding:0;position:static;background:none}
+#brief .row .cta{flex:1;font-size:1.15em;padding:.55em 1em}
+#brief .x{top:.4em;right:.4em;width:1.9em;height:1.9em;font-size:1.05em;z-index:4}
+/* short screens: the panel scrolls and To Battle stays in reach at its foot */
+@media (max-height:400px){#brief,#brief.left{max-height:calc(100% - .8em)}
+  #brief .row{position:sticky;bottom:-.85em;z-index:3;margin:.1em -.4em -.85em;padding:.45em .4em .85em;background:linear-gradient(rgba(240,216,164,0),#f0d8a4 30%)}}
+/* narrow (portrait) screens: one column */
+@media (max-width:560px){#brief,#brief.left{grid-template-columns:minmax(0,1fr);gap:.5em}}
 </style>
 </head><body>
 
@@ -765,15 +812,23 @@ canvas{outline:none}
       </div>
       <div id="brief" hidden>
         <button class="x" id="briefX" aria-label="Close">×</button>
-        <div class="bTop">
+        <div class="bL">
           <div class="bThumb"><canvas id="bThumb"></canvas><span class="bLanes" id="bLanes"></span></div>
           <div class="bText"><div class="reg" id="bReg"></div><h2 id="bName"></h2><p id="bDesc"></p></div>
+          <div class="meta" id="bMeta"></div>
+          <div class="bStarRow"><div class="stars" id="bStars"></div><span class="bStarLab" id="bStarLab"></span></div>
         </div>
-        <div class="meta" id="bMeta"></div>
-        <div class="bHead">Who walks this road</div>
-        <div class="bFoes" id="bFoes"></div>
-        <div class="bFoeInfo" id="bFoeInfo"></div>
-        <div class="row"><div class="stars" id="bStars"></div><button class="cta" id="toBattle">To Battle</button></div>
+        <div class="bR">
+          <div class="bSec">Who walks this road <small>tap one for details</small></div>
+          <div class="bFoes" id="bFoes"></div>
+          <div class="bFoeInfo" id="bFoeInfo"></div>
+          <div class="bSec">Spells you carry <small>tap one to swap</small></div>
+          <div class="bSpells" id="bSpells"></div>
+          <div class="bSec">Choose the challenge</div>
+          <div class="bModes" id="bModes"></div>
+          <div class="bModeInfo" id="bModeInfo"></div>
+          <div class="row"><button class="cta" id="toBattle">To Battle</button></div>
+        </div>
       </div>
     </div>
 
@@ -3354,19 +3409,20 @@ function showFoe(t,M,el){
   $('bFoeInfo').innerHTML=`<div class="fi-name">${nm}</div><div class="fi-note">${note}</div><div class="fi-stats"><span>Health</span><b>${pips(hp,'#d8402a')}</b><span>Speed</span><b>${pips(sp,'#4aa82a')}</b><span>Armour</span><b>${pips(ar,'#5a7ac8')}</b></div>`;
 }
 function openBrief(i){
-  WM.sel=i;const M=MAPS[i],b=$('brief');b.hidden=false;b.classList.toggle('left',NODES[i][0]>640);
+  WM.sel=i;const M=MAPS[i],b=$('brief');b.hidden=false;b.classList.remove('left');b.scrollTop=0;
   $('bReg').textContent=(ACTS[M.act].n)+(M.hell!=null&&HELLS[M.hell].t?' · '+HELLS[M.hell].t:'')+' · Road '+(i+1);
   $('bName').textContent=M.name;$('bDesc').textContent=M.desc;
   $('bLanes').textContent=laneLabel(M);
-  $('bMeta').innerHTML=`<span class="chip"><b>${M.waves}</b> waves</span><span class="chip"><b>${280+i*25+(laneCount(M)-1)*70}</b> gold</span><span class="chip"><b>${laneCount(M)}</b> ${laneCount(M)>1?'roads':'road'}</span>`+(M.boss?`<span class="chip boss">Boss: <b>${ETYPES[M.boss].label}</b></span>`:'');
+  $('bMeta').innerHTML=`<span class="chip"><b>${M.waves}</b> waves</span><span class="chip"><b>${laneCount(M)}</b> ${laneCount(M)>1?'roads':'road'}</span>`+(M.boss?`<span class="chip boss">Boss: <b>${ETYPES[M.boss].label}</b></span>`:'');
   $('bStars').innerHTML=[0,1,2].map(s=>starSVG(s<SAVE.stars[i])).join('');
+  {const n=SAVE.stars[i];$('bStarLab').textContent=!unlocked(i)?'Locked':n===3?'All three stars':n?n+' of 3 stars':'Not held yet';}
   const ok=unlocked(i);$('toBattle').disabled=!ok;$('toBattle').textContent=ok?'To Battle':'Locked';
   const foes=Object.keys(M.roster).filter(k=>k!=='elite').sort((a,b)=>M.roster[b]-M.roster[a]).concat(M.roster.elite?['elite']:[]).concat(M.boss?[M.boss]:[]);
   const box=$('bFoes');box.innerHTML='';
   for(const t of foes){const T=ETYPES[t],el=document.createElement('button');el.className='foe '+foeClass(t);el.setAttribute('aria-label',t==='elite'?'Elites':T.label);
     el.innerHTML=`<canvas></canvas><b>${t==='elite'?'Elites':T.label}</b><span>${foeTags(t).slice(0,2).join(' · ')||'&nbsp;'}</span>`;
     el.onclick=()=>{AU.play('click');showFoe(t,M,el);};el.onmouseenter=()=>showFoe(t,M,el);box.appendChild(el);el._t=t;}
-  showFoe(foes[foes.length-1],M,box.lastChild);
+  $('bFoeInfo').innerHTML='<div class="fi-hint">Tap one of the dead to see how tough, fast and armoured it is.</div>'; /* nothing picked until the player taps */
   const th=$('bThumb'),tg=th.getContext('2d');th.width=480;th.height=270;tg.fillStyle='#5c9a38';tg.fillRect(0,0,480,270);
   requestAnimationFrame(()=>{for(const el of box.children)drawPortrait(el.querySelector('canvas'),el._t,M);
     setTimeout(()=>{if(WM.sel!==i||mode!=='map')return;tg.drawImage(mapThumb(i),0,0);},30);});
@@ -4069,14 +4125,17 @@ let BRIEF_MODE='campaign';
 function renderModes(i){ensureModeSave();let box=$('bModes');if(!box){box=document.createElement('div');box.id='bModes';box.className='bModes';const row=$('toBattle').parentNode;row.parentNode.insertBefore(box,row);
     const info=document.createElement('div');info.id='bModeInfo';info.className='bModeInfo';row.parentNode.insertBefore(info,row);}
   if(!modeOpen(BRIEF_MODE,i))BRIEF_MODE='campaign';
-  box.innerHTML='';
+  box.innerHTML='';const LOCK='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2.5" y="7" width="11" height="8" rx="1.5" fill="currentColor"/></svg>';
   for(const k of Object.keys(MODES)){const b=document.createElement('button');const open=modeOpen(k,i);
     const done=k==='heroic'?SAVE.heroic[i]:k==='iron'?SAVE.iron[i]:0;
-    b.className='bmode'+(BRIEF_MODE===k?' on':'')+(open?'':' locked')+(done?' done':'');
-    b.innerHTML=`<span>${MODES[k].n}</span>${done?`<i class="${k}">★</i>`:''}${k==='endless'&&SAVE.endless[i]?`<i class="best">${SAVE.endless[i]}</i>`:''}`;
+    b.className='bmode'+(BRIEF_MODE===k?' on':'')+(open?'':' locked')+(done?' done':'');b.setAttribute('aria-pressed',BRIEF_MODE===k?'true':'false');
+    /* one segment per mode: its name, then what you have earned in it (or a padlock) */
+    const st=!open?LOCK:k==='campaign'?'<em class="st">'+'★'.repeat(SAVE.stars[i])+'<u>'+'★'.repeat(3-SAVE.stars[i])+'</u></em>':k==='endless'?(SAVE.endless[i]?'<em>best '+SAVE.endless[i]+'</em>':'<em>&nbsp;</em>'):(done?`<em class="${k}">★ won</em>`:'<em>bonus ★</em>');
+    b.innerHTML=`<span>${MODES[k].n}</span>${st}`;
     b.onclick=()=>{if(!open){toast('Earn a star on this road to unlock '+MODES[k].n,true);return;}AU.play('click');BRIEF_MODE=k;renderModes(i);};box.appendChild(b);}
   let extra='';if(BRIEF_MODE==='iron')extra=` Towers: <b>${ironTowers(i).map(t=>TOWERS[t].name).join('</b> and <b>')}</b>.`;
   if(BRIEF_MODE==='endless'&&SAVE.endless[i])extra=` Best: <b>wave ${SAVE.endless[i]}</b>.`;
+  if(BRIEF_MODE==='campaign'&&!modeOpen('heroic',i))extra=' Win it once to unlock <b>Heroic</b>, <b>Iron</b> and <b>Endless</b>.';
   $('bModeInfo').innerHTML=MODES[BRIEF_MODE].d+extra;
   const ok=unlocked(i);$('toBattle').textContent=ok?(BRIEF_MODE==='campaign'?'To Battle':MODES[BRIEF_MODE].n+' Battle'):'Locked';}
 
@@ -4278,9 +4337,11 @@ function renderBook(){const eq=equipped(),slots=$('bookSlots'),grid=$('bookGrid'
     grid.appendChild(c);}}
 function refreshBriefSpells(){if(WM.sel<0||$('brief').hidden)return;renderBriefSpells();}
 function renderBriefSpells(){let row=$('bSpells');if(!row){row=document.createElement('div');row.id='bSpells';row.className='bSpells';const ref=$('bModes')||$('toBattle').parentNode;ref.parentNode.insertBefore(row,ref);}
-  const eq=equipped();row.hidden=false;
-  row.innerHTML=`<span class="lab">Spells</span>${eq.map(k=>`<span class="chipS"><svg viewBox="0 0 32 32">${bookDef(k).svg}</svg>${bookDef(k).n}</span>`).join('')}<button class="btn2" id="bSpellChange">Change</button>`;
-  $('bSpellChange').onclick=()=>{AU.play('click');openBook();};}
+  const eq=equipped();row.hidden=false;row.innerHTML='';
+  /* the two spells you carry, as slots: tap one to open the spellbook on that slot */
+  for(let k=0;k<2;k++){const id=eq[k],D=id&&bookDef(id),b=document.createElement('button');b.className='bslotT'+(D?'':' empty');
+    b.innerHTML=D?`<span class="ico"><svg viewBox="0 0 32 32">${D.svg}</svg></span><span class="nm">${D.n}</span>`:`<span class="ico"></span><span class="nm">Empty</span>`;
+    b.onclick=()=>{AU.play('click');BOOK_SLOT=k;openBook();};row.appendChild(b);}}
 
 /* ================= WAR COUNCIL: towers and every spell ================= */
 const SPELL_TIERS={
