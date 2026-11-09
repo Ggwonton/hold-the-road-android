@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.webkit.WebResourceRequest;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebChromeClient;
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
         final boolean safe = getSharedPreferences("diag", 0).getBoolean("noAds", false);
         final int gfx = getSharedPreferences("diag", 0).getInt("gfx", 0);
         App.mark(this, "onCreate" + (safe ? " (ads off)" : "") + (gfx > 0 && gfx < MODES.length ? " MODE: " + MODES[gfx] : ""));
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        stayAwake();
         if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
         App.mark(this, "WebView created");
@@ -122,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
             @android.webkit.JavascriptInterface public void setGfx(int m) {
                 getSharedPreferences("diag", 0).edit().putInt("gfx", m).apply();
                 runOnUiThread(() -> { picked = true; App.bootOk(MainActivity.this); recreate(); }); }
+            /** the game says whether a battle is being played (running, not paused): the screen stays on for it */
+            @android.webkit.JavascriptInterface public void playing(boolean on) { runOnUiThread(() -> { inBattle = on; stayAwake(); }); }
             @android.webkit.JavascriptInterface public void copy(String t) { runOnUiThread(() -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road FPS test", t));
@@ -147,11 +150,28 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (web == null) return;   // the page is being rebuilt after its drawing process died
                 web.evaluateJavascript("window.androidBack&&window.androidBack()", value -> {
                     if (!"true".equals(value)) moveTaskToBack(true);
                 });
             }
         });
+    }
+
+    // Keep the screen on while a battle is being played, and otherwise until 3 minutes after the last touch.
+    // It used to stay on for as long as the app was open, even left on the map or the pause screen (battery, burn-in).
+    private final android.os.Handler ui = new android.os.Handler(android.os.Looper.getMainLooper());
+    private boolean awake = false, inBattle = false;
+    private final Runnable letScreenSleep = () -> { if (!inBattle) { awake = false; getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); } };
+    private void stayAwake() {
+        if (!awake) { awake = true; getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); }
+        ui.removeCallbacks(letScreenSleep);
+        if (!inBattle) ui.postDelayed(letScreenSleep, 180_000);
+    }
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getActionMasked() == MotionEvent.ACTION_DOWN) stayAwake();
+        return super.dispatchTouchEvent(ev);
     }
 
     /** Plain report screen (no WebView, no ads) shown after a failed start. */
@@ -236,6 +256,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        // Leaving the game in its first seconds (home button, recent apps, locking the phone) is not a failed start.
+        // Clear the start-up record, or a quick exit followed by Android closing the app would make the next launch
+        // step the graphics down (and, the third time, show the problem report). A restart after the page's
+        // drawing process died keeps the record, so a real start-up crash loop is still caught.
+        if (!isChangingConfigurations()) App.bootOk(this);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (web != null) {
@@ -246,6 +276,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        ui.removeCallbacks(letScreenSleep);
         if (monetize != null) monetize.destroy();
         if (web != null) web.destroy();
         super.onDestroy();

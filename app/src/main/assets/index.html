@@ -30,7 +30,7 @@ body{height:100%;margin:0;background:var(--night);color:var(--parch);font-family
 .fit{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 #stage{position:relative;width:960px;height:540px;background:#000;border-radius:6px;overflow:hidden;font-size:max(11px,calc(var(--u)*19));
   box-shadow:0 0 0 1px #000,0 0 0 3px #3a2414,0 0 0 4px #000,0 24px 70px rgba(0,0,0,.7)}
-#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#game{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;display:block;touch-action:none}
 #game.pointer{cursor:pointer}
 button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
@@ -78,8 +78,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .medal.ready .core{animation:emberglow 2.2s ease-in-out infinite}
 @keyframes emberglow{50%{box-shadow:inset 0 0 0 2px #1a0a04,inset 0 0 22px rgba(255,150,60,.85)}}
 .medal svg{width:1.9em;height:1.9em;filter:drop-shadow(0 2px 1px rgba(0,0,0,.7))}
-.medal .cd{position:absolute;inset:0;background:conic-gradient(rgba(10,6,4,.78) var(--p,0%),transparent 0)}
-.medal .secs{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:1em;color:#fbecc8;text-shadow:0 2px 0 #000}
+.medal .cd{position:absolute;top:0;right:0;bottom:0;left:0;background:conic-gradient(rgba(10,6,4,.78) var(--p,0%),transparent 0)}
+.medal .secs{position:absolute;top:0;right:0;bottom:0;left:0;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:1em;color:#fbecc8;text-shadow:0 2px 0 #000}
 .medal.armed{box-shadow:0 0 0 1px #000,0 0 0 4px rgba(255,190,90,.55),0 0 22px rgba(255,150,60,.8),0 4px 0 #0a0604}
 .medal .tag{position:absolute;left:50%;bottom:-1.05em;transform:translateX(-50%);white-space:nowrap;font-family:var(--display);font-weight:800;font-size:.46em;letter-spacing:.14em;text-transform:uppercase;
   color:#fff1cf;padding:.3em 1.1em;background:linear-gradient(#a8331f,#6e1d12);clip-path:polygon(0 0,100% 0,92% 50%,100% 100%,0 100%,8% 50%)}
@@ -131,7 +131,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #bossbar .bf{height:100%;width:100%;background:linear-gradient(#d06aff,#7a2aa8 60%,#4a1468);box-shadow:inset 0 2px 0 rgba(255,255,255,.3);transition:width .15s}
 
 /* veils */
-.veil{position:absolute;inset:0;display:flex;overflow:auto;padding:1em 0;
+.veil{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;overflow:auto;padding:1em 0;
   background:radial-gradient(ellipse at 50% 35%,rgba(40,20,30,.45),rgba(8,4,8,.93) 75%);-webkit-backdrop-filter:blur(3px) saturate(.8);backdrop-filter:blur(3px) saturate(.8)}
 .card{margin:auto;width:min(86%,calc(var(--u)*900));display:grid;gap:.5em;justify-items:center;text-align:center}
 .eyebrow{font-family:var(--display);font-weight:800;font-size:.62em;letter-spacing:.42em;text-transform:uppercase;color:var(--muted)}
@@ -158,7 +158,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .cta:hover{filter:brightness(1.08)}
 .cta:active{transform:translateY(2px)}
 .hint{font-size:.7em;color:var(--muted)}
-.embers{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.embers{position:absolute;top:0;right:0;bottom:0;left:0;overflow:hidden;pointer-events:none}
 .embers i{position:absolute;bottom:-10px;width:4px;height:4px;border-radius:50%;background:#ffb060;box-shadow:0 0 8px #ff7a2a;animation:rise linear infinite;opacity:0}
 @keyframes rise{0%{opacity:0;transform:translateY(0)}15%{opacity:.9}100%{opacity:0;transform:translate(30px,-110vh)}}
 #rotate{display:none}
@@ -166,9 +166,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 @media (prefers-reduced-motion:reduce){.bellbtn.live .bico svg,.medal.ready .core,.embers i{animation:none}#herald.show{animation-duration:.01s;opacity:1}}
 
 /* ---------- world map ---------- */
-#mapUI{position:absolute;inset:0;pointer-events:none}
+#mapUI{position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none}
 #mapUI>*{pointer-events:auto}
-#world{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#world{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;display:block;touch-action:none}
 #world.pointer{cursor:pointer}
 .maphead{position:absolute;top:.6em;left:.7em;display:flex;gap:.6em;align-items:flex-start}
 .maphead .plaque{gap:.8em}
@@ -392,7 +392,7 @@ body{background:#1c140c}
 #pauseScreen:not([hidden]),#endScreen:not([hidden]){z-index:30}
 
 /* ===== studio intro ===== */
-#intro{position:absolute;inset:0;z-index:50;background:#050302;display:grid;place-items:center;overflow:hidden;cursor:pointer;transition:opacity .9s ease}
+#intro{position:absolute;top:0;right:0;bottom:0;left:0;z-index:50;background:#050302;display:grid;place-items:center;overflow:hidden;cursor:pointer;transition:opacity .9s ease}
 #intro.out{opacity:0;pointer-events:none}
 #intro .ilight{position:absolute;left:50%;top:42%;width:10em;height:10em;margin:-5em 0 0 -5em;border-radius:50%;background:radial-gradient(circle,rgba(255,170,70,.55),rgba(255,120,40,.18) 40%,transparent 70%);transform:scale(0);opacity:0;transition:transform 2.6s cubic-bezier(.2,.8,.2,1),opacity 1.4s}
 #intro.lit .ilight{transform:scale(6);opacity:1}
@@ -413,7 +413,7 @@ body{background:#1c140c}
 #intro .ipres{font-family:"Alegreya Sans",sans-serif;font-style:italic;font-weight:700;font-size:1.25em;color:#f4dcb0;opacity:0;transform:translateY(.4em);transition:opacity 1s,transform 1s}
 #intro .ipres.on{opacity:1;transform:none}
 #intro .iskip{position:absolute;bottom:1.2em;right:1.4em;font-family:"Lilita One",sans-serif;font-size:.7em;letter-spacing:.2em;color:rgba(255,220,170,.4)}
-#intro .iemb{position:absolute;inset:0;pointer-events:none}
+#intro .iemb{position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none}
 #intro .iemb i{position:absolute;bottom:40%;width:3px;height:3px;border-radius:50%;background:#ffb060;box-shadow:0 0 6px #ff7a2a;opacity:0}
 #intro.lit .iemb i{animation:irise linear infinite}
 @keyframes irise{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx),-55vh)}}
@@ -423,7 +423,7 @@ body{background:#1c140c}
 #splash .tapgo{animation:blink 1.6s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){#intro *{transition-duration:.01s!important;animation:none!important}#splash .card{animation:none}}
 
-#wipe{position:absolute;inset:0;z-index:45;display:grid;place-items:center;background:radial-gradient(circle,#3a2414,#0c0604 70%);clip-path:circle(0% at 50% 50%);transition:clip-path .5s cubic-bezier(.6,0,.4,1);pointer-events:none}
+#wipe{position:absolute;top:0;right:0;bottom:0;left:0;z-index:45;display:grid;place-items:center;background:radial-gradient(circle,#3a2414,#0c0604 70%);clip-path:circle(0% at 50% 50%);transition:clip-path .5s cubic-bezier(.6,0,.4,1);pointer-events:none}
 #wipe.on{clip-path:circle(78% at 50% 50%);pointer-events:auto}
 #wipe svg{width:5em;height:5em;filter:drop-shadow(0 0 20px rgba(255,170,70,.8));transform:scale(.6);transition:transform .5s}
 #wipe.on svg{transform:scale(1)}
@@ -538,7 +538,7 @@ body{background:#1c140c}
 .bseen{margin:.6em 0;font-size:.82em}
 @media (max-width:640px){#bdet{grid-template-columns:1fr}#bdcv{height:calc(var(--u)*200)}}
 /* tutorial coach */
-#coach{position:absolute;inset:0;pointer-events:none;z-index:30}
+#coach{position:absolute;top:0;right:0;bottom:0;left:0;pointer-events:none;z-index:30}
 #coach[hidden]{display:none!important}
 #coach .cbub{position:absolute;max-width:min(22em,80%);background:linear-gradient(#fff6dc,#efd8a8);border:3px solid var(--ink);border-radius:.8em;box-shadow:0 5px 0 var(--ink),0 10px 24px rgba(0,0,0,.35);padding:.6em .8em .5em;color:#3a200c;font-family:var(--body);font-size:.95em;line-height:1.3;pointer-events:auto}
 #coach .cbub b{color:#a8301e}
@@ -626,11 +626,11 @@ body{background:#1c140c}
 .rmsplash:hover{color:#fff}
 @media (max-width:700px){.rmlink{font-size:.8em}.rmtxt small{display:none}}
 /* story */
-#story{position:absolute;inset:0;z-index:40;background:#000;cursor:pointer;animation:sfade .6s ease both}
+#story{position:absolute;top:0;right:0;bottom:0;left:0;z-index:40;background:#000;cursor:pointer;animation:sfade .6s ease both}
 #story.out{animation:sfadeo .5s ease both}
 #story[hidden]{display:none!important}
 @keyframes sfade{from{opacity:0}}@keyframes sfadeo{to{opacity:0}}
-#storyCv{position:absolute;inset:0;width:100%;height:100%;display:block}
+#storyCv{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;display:block}
 #story .stitle{position:absolute;top:6%;left:0;right:0;text-align:center;font-family:"Grenze Gotisch",var(--display);font-weight:800;font-size:2.6em;color:#ffd78a;text-shadow:0 0 18px rgba(255,150,50,.6),0 3px 0 #000;letter-spacing:.04em}
 #story .sbox{position:absolute;left:50%;top:17%;transform:translateX(-50%);width:min(86%,40em);padding:1em 1.4em .8em;background:linear-gradient(rgba(20,12,8,.82),rgba(10,6,4,.9));border:2px solid rgba(255,200,120,.45);border-radius:.8em;box-shadow:0 10px 30px rgba(0,0,0,.6);text-align:center}
 #story .stext{margin:0;font-family:var(--body);font-weight:700;font-size:1.25em;line-height:1.4;color:#f4e2c0;opacity:0;transform:translateY(.4em);transition:opacity .7s,transform .7s}
@@ -3216,7 +3216,9 @@ function openBrief(i){
 }
 function lookFor(type,M){
   if(type==='elite')return eliteLook(pick((M&&M.elites)||Object.keys(ELITES)));
-  return({lord:()=>lordLook(LORDS[0]),trollking:trollKingLook,demon:demonLook,king:kingLook,condemned:condemnedLook,shade:shadeLook,ogre:ogreLook,troll:trollLook,hellhound:houndLook})[type]?.()||zLook(type);
+  /* no optional chaining here: older Android WebViews (before Chrome 80) can't read it, and one such line stops the whole game */
+  const f=({lord:()=>lordLook(LORDS[0]),trollking:trollKingLook,demon:demonLook,king:kingLook,condemned:condemnedLook,shade:shadeLook,ogre:ogreLook,troll:trollLook,hellhound:houndLook})[type];
+  return (f&&f())||zLook(type);
 }
 function drawFigureIn(g,type,L,x,y,unit,t){const sc=Math.min(ETYPES[type].sc,1.9);g.save();g.translate(x,y);shadow(g,0,1,11*unit*sc,4*unit*sc,.45);if(L.ghost)g.globalAlpha=.75;
   if(L.aura)glow(g,0,-16*unit*sc,22*unit*sc,hexA(L.aura,.18));
@@ -3322,7 +3324,10 @@ $('toBattle').onclick=()=>{if(WM.sel>=0&&unlocked(WM.sel)){const i=WM.sel;AU.pla
 $('openSet').onclick=openSettings;
 /* from the pause menu: hide the pause menu while Settings is open, bring it back on Done */
 let SET_FROM_PAUSE=false;$('pauseSet').onclick=()=>{SET_FROM_PAUSE=true;$('pauseScreen').hidden=true;openSettings();};
-$('setClose').onclick=()=>{$('setV').hidden=true;if(SET_FROM_PAUSE){SET_FROM_PAUSE=false;if(mode==='battle'&&S&&S.paused&&!S.over)$('pauseScreen').hidden=false;}};$('storyBtn').onclick=()=>{$('setV').hidden=true;if(!(SAVE.story&&Object.keys(SAVE.story).length)){toast('No scenes unlocked yet');return;}replayStory();};
+$('setClose').onclick=()=>{$('setV').hidden=true;if(SET_FROM_PAUSE){SET_FROM_PAUSE=false;if(mode==='battle'&&S&&S.paused&&!S.over)$('pauseScreen').hidden=false;}};$('storyBtn').onclick=()=>{$('setV').hidden=true;
+  /* opened from the pause screen mid-battle: bring the pause screen back once the scenes are over */
+  const back=()=>{if(SET_FROM_PAUSE){SET_FROM_PAUSE=false;if(mode==='battle'&&S&&S.paused&&!S.over)$('pauseScreen').hidden=false;}};
+  if(!(SAVE.story&&Object.keys(SAVE.story).length)){toast('No scenes unlocked yet');back();return;}replayStory(back);};
 {const de=document.documentElement,fsOk=!!(de.requestFullscreen||de.webkitRequestFullscreen);if(!fsOk||window.__ANDROID__)$('fsRow').hidden=true;$('optFull').onchange=e=>{try{if(e.target.checked){(de.requestFullscreen||de.webkitRequestFullscreen).call(de);try{screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape').catch(()=>{});}catch(_){}}else (document.exitFullscreen||document.webkitExitFullscreen).call(document);}catch(_){}};document.addEventListener('fullscreenchange',()=>{$('optFull').checked=!!document.fullscreenElement;});}
 $('sfxVol').oninput=e=>{SAVE.sfx=e.target.value/100;applyVolumes();writeSave();};
 $('musVol').oninput=e=>{SAVE.music=e.target.value/100;applyVolumes();writeSave();};
@@ -4092,10 +4097,41 @@ function tutTick(dt){if(!TUT.on||!S||mode!=='battle'){if(TUT.el&&!TUT.on)TUT.el.
   else{const r=cv.getBoundingClientRect();x=r.left-host.left+at.w[0]/W*r.width;y=r.top-host.top+at.w[1]/H*r.height;}
   const pt=TUT.el.querySelector('.cpt'),bub=TUT.el.querySelector('.cbub');
   pt.style.left=x+'px';pt.style.top=y+'px';
-  const bw=bub.offsetWidth,bh=bub.offsetHeight,above=y-bh-46>8;
-  let bx=Math.min(Math.max(8,x-bw/2),host.width-bw-8),by=above?y-bh-44:y+40;if(by<70&&x<380)bx=Math.max(bx,300);
-  bub.style.left=bx+'px';bub.style.top=by+'px';TUT.el.classList.toggle('below',!above);
+  const bw=bub.offsetWidth,bh=bub.offsetHeight,HW=host.width,HH=host.height;
+  const key=TUT.step+'|'+Math.round(x)+'|'+Math.round(y)+'|'+(S.menu?Math.round(S.menu.x)+','+Math.round(S.menu.y):'-')+'|'+Math.round(HW)+'x'+Math.round(HH)+'|'+bw+'x'+bh;
+  if(TUT.pk!==key||(TUT.pn=(TUT.pn||0)+1)%15===0){TUT.pk=key;TUT.pn=0;TUT.pos=tutPlace(host,x,y,bw,bh,HW,HH);}
+  const [bx,by,below]=TUT.pos;
+  bub.style.left=bx+'px';bub.style.top=by+'px';TUT.el.classList.toggle('below',below);
 }
+/* Where the coach bubble goes: above the spot it points at if it can, else below or to one side, but never over a HUD
+   control or a button of the open build ring (the bubble takes taps, so whatever it covers can't be pressed). */
+function tutPlace(host,x,y,bw,bh,HW,HH){
+  const obs=[],box=e=>{const r=e.getBoundingClientRect();return[r.left-host.left-4,r.top-host.top-4,r.right-host.left+4,r.bottom-host.top+4];};
+  for(const e of document.querySelectorAll('#battleHud .hud>*,#bossbar')){if(e.hidden||e.offsetParent===null)continue;const r=e.getBoundingClientRect();if(r.width<2||r.height<2)continue;obs.push(box(e));}
+  let L=x-30,T=y-44,R=x+30,B=y+36; /* the pointer, its arrow and its ring */
+  if(S&&S.menu){const r=cv.getBoundingClientRect(),kx=r.width/W,ky=r.height/H;for(const b of menuButtons()){const cx=r.left-host.left+b.x*kx,cy=r.top-host.top+b.y*ky,rr=31*kx;L=Math.min(L,cx-rr);T=Math.min(T,cy-rr);R=Math.max(R,cx+rr);B=Math.max(B,cy+rr);}}
+  obs.push([L+1,T+1,R-1,B-1]);
+  const over=(a,b2,c,d)=>{let s=0;for(const o of obs){const w=Math.min(c,o[2])-Math.max(a,o[0]),h=Math.min(d,o[3])-Math.max(b2,o[1]);if(w>0&&h>0)s+=w*h;}return s;};
+  const mx=(L+R)/2,my=(T+B)/2;
+  const C=[[mx-bw/2,T-bh,0],[R-bw,T-bh,0],[L,T-bh,0],[mx-bw/2,B+4,1],[R-bw,B+4,1],[L,B+4,1],[L-bw-4,my-bh/2,0],[R+4,my-bh/2,0],[L-bw-4,T,0],[R+4,T,0],[L-bw-4,B-bh,0],[R+4,B-bh,0]];
+  let best=null,bs=1e18;
+  for(const [cx,cy,bl] of C){const bx=Math.min(Math.max(8,cx),HW-bw-8),by=Math.min(Math.max(8,cy),HH-bh-8);const s=over(bx,by,bx+bw,by+bh);if(s<bs){bs=s;best=[bx,by,!!bl];if(!s)break;}}
+  return best;}
+/* Early roads, new players only (fewer than three roads won): a player who never casts a spell tends to lose the first
+   roads. The first time the dead get through while a spell is ready and none has been cast this battle, remind them once. */
+const NUDGE={lives:-1,done:false,cast:false};
+function nudgeTick(){
+  if(!S||!LV||mode!=='battle'||S.over||S.paused||LV.mode!=='campaign'||S.mi>2||roadsDone()>=3){NUDGE.lives=S?S.lives:-1;return;}
+  if(NUDGE.lives<0)NUDGE.lives=S.lives;
+  if(S.lives<NUDGE.lives&&!NUDGE.done&&!NUDGE.cast&&!TUT.on&&!S.ability){
+    const ready=[...document.querySelectorAll('#battleHud .medal')].some(b=>!b.hidden&&b.offsetParent!==null&&b.classList.contains('ready'));
+    if(ready){NUDGE.done=true;toast('The dead are getting through! Tap a glowing spell, then tap the road.');clearTimeout(toastT);toastT=setTimeout(()=>{$('toast').style.opacity=0;},5000);}}
+  NUDGE.lives=S.lives;}
+{const _t=tutTick;tutTick=function(dt){_t(dt);try{nudgeTick();}catch(e){}};}
+{const _s=startLevel;startLevel=function(){NUDGE.lives=-1;NUDGE.done=false;NUDGE.cast=false;return _s.apply(this,arguments);};}
+{const _l=castLevy;castLevy=function(){const r=_l.apply(this,arguments);if(r)NUDGE.cast=true;return r;};}
+{const _o=castOil;castOil=function(){const r=_o.apply(this,arguments);if(r)NUDGE.cast=true;return r;};}
+{const _c=castSpell;castSpell=function(){const r=_c.apply(this,arguments);if(r!==false)NUDGE.cast=true;return r;};}
 
 
 /* ================= CHALLENGE MODES: HEROIC, IRON, ENDLESS ================= */
@@ -4147,16 +4183,25 @@ function renderModes(i){ensureModeSave();let box=$('bModes');if(!box){box=docume
 // Called by the Android wrapper's back button. Returns true when the game handled it.
 window.androidBack=function(){
   if(typeof STO!=='undefined'&&STO){endStory();return true;}
-  for(const id of['achV','bookV','bestV','upV','setV']){const e=$(id);if(e&&!e.hidden){if(id==='setV')$('setClose').onclick();else e.hidden=true;return true;}}
+  /* mid-transition: swallow the press instead of sending the app to the background */
+  if(typeof WIPING!=='undefined'&&WIPING)return true;
+  /* close a panel the same way its own Close button does (the council refreshes the map's star count, the spellbook the war table) */
+  for(const [id,cl] of[['achV','achClose'],['bookV','bookClose'],['bestV','bestClose'],['upV','upClose'],['setV','setClose']]){const e=$(id);if(e&&!e.hidden){const c=$(cl);if(c&&c.onclick)c.onclick();else e.hidden=true;return true;}}
   if(!$('brief').hidden){$('brief').hidden=true;WM.sel=-1;return true;}
   if(mode==='battle'&&S){if(!$('endScreen').hidden){$('endScreen').hidden=true;wipeTo(()=>setMode('map'));return true;}
     if(S.menu||S.ability){S.menu=null;S.ability=null;return true;}
-    if(!S.over){if(S.paused){S.paused=false;$('pauseScreen').hidden=true;}else{S.paused=true;$('pauseScreen').hidden=false;}return true;}}
+    if(!S.over){if(S.paused){S.paused=false;$('pauseScreen').hidden=true;}else{S.paused=true;$('pauseScreen').hidden=false;}return true;}
+    return true;}
   return false;};
 // App sent to background: pause the battle and silence audio. Back in front: resume audio only.
-window.androidPause=function(){try{if(mode==='battle'&&S&&!S.over&&!S.paused){S.paused=true;$('pauseScreen').hidden=false;}if(AU.c&&AU.c.state==='running')AU.c.suspend();}catch(e){}};
+window.androidPause=function(){try{if(mode==='battle'&&S&&!S.over&&!S.paused){S.paused=true;$('pauseScreen').hidden=false;}if(AU.c&&AU.c.state==='running')AU.c.suspend();}catch(e){}
+  /* Android may close the app while it waits in the background: keep the Endless waves already held and this battle's stats */
+  try{if(typeof endlessKeep==='function')endlessKeep();writeSave();}catch(e){}};
 window.androidResume=function(){try{if(AU.c&&AU.c.state==='suspended')AU.c.resume();}catch(e){}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden)window.androidPause();else window.androidResume();});
+/* tell the Android app whether a battle is being played (running, not paused), so the screen stays on for it and can sleep otherwise */
+{let was=null;setInterval(()=>{try{const p=!!(mode==='battle'&&S&&!S.paused&&!S.over&&!document.hidden);
+  if(p!==was){was=p;if(window.HTRLog&&typeof window.HTRLog.playing==='function')window.HTRLog.playing(p);}}catch(e){}},1000);}
 
 
 /* ================= BRANCH TOWER RANKS (three more levels for the second-tier towers) ================= */
@@ -4498,7 +4543,7 @@ function drawStoryScene(g,k,t,w,h){const D=STORY[k],z=1+t*.012,px=-t*6;
   const v=g.createRadialGradient(w/2,h/2,h*.3,w/2,h/2,w*.75);v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.6)');g.fillStyle=v;g.fillRect(0,0,w,h);}
 /* play any story the player has earned when they come back to the map */
 {const _sm=setMode;setMode=function(m){_sm(m);if(m==='map'){const k=storyPending();if(k)setTimeout(()=>{if(mode==='map'&&!STO)playStory(k);},450);}};}
-function replayStory(){const seen=STORY_ORDER.filter(k=>SAVE.story&&SAVE.story[k]);let i=0;const nx=()=>{if(i<seen.length){const k=seen[i++];delete SAVE.story[k];playStory(k,nx);}};nx();}
+function replayStory(done){const seen=STORY_ORDER.filter(k=>SAVE.story&&SAVE.story[k]);let i=0;const nx=()=>{if(i<seen.length){const k=seen[i++];delete SAVE.story[k];playStory(k,nx);}else if(done)done();};nx();}
 
 
 /* ================= ACHIEVEMENTS AND STATS ================= */
@@ -4797,6 +4842,11 @@ function menuCenter(){const m=S.menu;const t=m.tower,key=(t?(t.branch?'b':t.lvl<
   for(let dy=-400;dy<=400;dy+=8)for(let dx=-560;dx<=560;dx+=8){const d=dx*dx+dy*dy;if(d>=bd)continue;if(ringFits(m.x+dx,m.y+dy,offs,rects)){bd=d;best={cx:m.x+dx,cy:m.y+dy};}}
   if(!best)best={cx:clamp(m.x,90,W-90),cy:clamp(m.y,110,H-110)};
   m._c=best;m._ck=key;return best;}
+/* Endless: retreating to the map or restarting keeps the waves you held as your best */
+function endlessKeep(){try{if(!S||!LV||LV.mode!=='endless'||S.over)return;const i=S.mi;
+  const busy=S.enemies.some(e=>!e.dead)||(S.spawning&&S.spawning.some(g=>g.left>0));const held=Math.max(0,busy?S.wave-1:S.wave);
+  if(held>(SAVE.endless[i]||0)){SAVE.endless[i]=held;writeSave();try{checkAch()}catch(e){}}}catch(e){}}
+for(const id of['quitMap','restart']){const b=$(id);if(b&&b.onclick){const f=b.onclick;b.onclick=function(){endlessKeep();return f.apply(this,arguments);};}}
 
 })();
 </script>

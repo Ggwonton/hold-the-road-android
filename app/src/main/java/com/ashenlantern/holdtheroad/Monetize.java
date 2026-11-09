@@ -110,18 +110,25 @@ public class Monetize {
     }
 
     private void connect(Runnable then) {
+        if (billing == null) { if (then != null) js("buyfail", STORE_DOWN); return; }
         if (billing.isReady()) { if (then != null) then.run(); return; }
+        // A tap on "Remove ads" waits for this connection: if it can't be made (offline, no Play Store), say so
+        // instead of doing nothing.
+        final AtomicBoolean answered = new AtomicBoolean(false);
         billing.startConnection(new BillingClientStateListener() {
             @Override public void onBillingSetupFinished(@NonNull BillingResult r) {
+                if (!answered.compareAndSet(false, true)) return;
                 if (r.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     queryOwned();
-                    queryPrice();
-                    if (then != null) then.run();
-                }
+                    queryPrice(then);   // the purchase needs the product details, so wait for them
+                } else if (then != null) js("buyfail", STORE_DOWN);
             }
-            @Override public void onBillingServiceDisconnected() { }
+            @Override public void onBillingServiceDisconnected() {
+                if (then != null && answered.compareAndSet(false, true)) js("buyfail", STORE_DOWN);
+            }
         });
     }
+    private static final String STORE_DOWN = "The store isn't available right now. Please try again later.";
 
     private void queryOwned() {
         billing.queryPurchasesAsync(
@@ -129,7 +136,9 @@ public class Monetize {
                 (r, purchases) -> { if (r.getResponseCode() == BillingClient.BillingResponseCode.OK) handlePurchases(purchases, true); });
     }
 
-    private void queryPrice() {
+    private void queryPrice() { queryPrice(null); }
+    /** after: runs once the answer is in (used by a "Remove ads" tap that had to reconnect first). */
+    private void queryPrice(Runnable after) {
         QueryProductDetailsParams q = QueryProductDetailsParams.newBuilder()
                 .setProductList(Collections.singletonList(QueryProductDetailsParams.Product.newBuilder()
                         .setProductId(PRODUCT_NO_ADS).setProductType(BillingClient.ProductType.INAPP).build()))
@@ -141,6 +150,7 @@ public class Monetize {
                 ProductDetails.OneTimePurchaseOfferDetails o = noAdsProduct.getOneTimePurchaseOfferDetails();
                 if (o != null) js("price", o.getFormattedPrice());
             }
+            if (after != null) act.runOnUiThread(after);
         });
     }
 
@@ -183,7 +193,7 @@ public class Monetize {
     // ---------------- called from the game (runs on a WebView thread) ----------------
     @JavascriptInterface public void ready() {
         js("noads", noAds ? "true" : "false");
-        act.runOnUiThread(() -> { sendPrivacy(); connect(null); if (billing.isReady()) { queryOwned(); queryPrice(); } });
+        act.runOnUiThread(() -> { sendPrivacy(); connect(null); if (billing != null && billing.isReady()) { queryOwned(); queryPrice(); } });
     }
 
     @JavascriptInterface public boolean showInterstitial() {
@@ -194,7 +204,7 @@ public class Monetize {
 
     @JavascriptInterface public void buyNoAds() {
         act.runOnUiThread(() -> connect(() -> {
-            if (noAdsProduct == null) { js("buyfail", "The store isn't available right now. Please try again later."); return; }
+            if (noAdsProduct == null) { js("buyfail", STORE_DOWN); return; }
             BillingFlowParams f = BillingFlowParams.newBuilder()
                     .setProductDetailsParamsList(Collections.singletonList(
                             BillingFlowParams.ProductDetailsParams.newBuilder().setProductDetails(noAdsProduct).build()))
