@@ -3778,7 +3778,7 @@ function bakeWorld(){
     g.fillStyle=INK;g.beginPath();g.moveTo(x-w/2-14,y-12);g.lineTo(x+w/2+14,y-12);g.lineTo(x+w/2+5,y+1);g.lineTo(x+w/2+14,y+14);g.lineTo(x-w/2-14,y+14);g.lineTo(x-w/2-5,y+1);g.closePath();g.fill();
     g.fillStyle=col;g.fillRect(x-w/2,y-10,w,21);g.fillStyle='rgba(255,255,255,.28)';g.fillRect(x-w/2,y-10,w,5);g.fillStyle='rgba(0,0,0,.18)';g.fillRect(x-w/2,y+7,w,4);
     g.lineWidth=4;g.strokeStyle=INK;g.strokeText(t,x,y+7);g.fillStyle='#fff';g.fillText(t,x,y+7);};
-  ribbon('The Marsh',230,708,'#3a8a3a');ribbon('Ashford',322,382,'#c8302a');ribbon('The Keep',620,500,'#2a62c0');ribbon('The Mountains',640,40,'#5a6a8a');ribbon('The Seven Circles',PIT.x,88,'#8a1e12');
+  ribbon('The Marsh',230,708,'#3a8a3a');ribbon('Ashford',322,382,'#c8302a');ribbon('The Keep',620,500,'#2a62c0');ribbon('The Mountains',560,40,'#5a6a8a');ribbon('The Seven Circles',PIT.x,88,'#8a1e12');
   // compass rose
   {const x=790,y=650;g.fillStyle='rgba(255,244,216,.92)';g.beginPath();g.arc(x,y,28,0,7);g.fill();g.strokeStyle=INK;g.lineWidth=3;g.stroke();g.strokeStyle='#c89a50';g.lineWidth=1;g.beginPath();g.arc(x,y,22,0,7);g.stroke();
     for(let i=0;i<8;i++){g.save();g.translate(x,y);g.rotate(i*Math.PI/4);const big=i%2===0;g.fillStyle=i===0?'#c8302a':big?'#5a3a1e':'#a87a4a';g.beginPath();g.moveTo(0,big?-34:-22);g.lineTo(big?5:3,0);g.lineTo(big?-5:-3,0);g.closePath();g.fill();g.restore();}
@@ -4847,6 +4847,27 @@ function endlessKeep(){try{if(!S||!LV||LV.mode!=='endless'||S.over)return;const 
   const busy=S.enemies.some(e=>!e.dead)||(S.spawning&&S.spawning.some(g=>g.left>0));const held=Math.max(0,busy?S.wave-1:S.wave);
   if(held>(SAVE.endless[i]||0)){SAVE.endless[i]=held;writeSave();try{checkAch()}catch(e){}}}catch(e){}}
 for(const id of['quitMap','restart']){const b=$(id);if(b&&b.onclick){const f=b.onclick;b.onclick=function(){endlessKeep();return f.apply(this,arguments);};}}
+
+/* ================= RATE AND SHARE (two buttons on the map) ================= */
+// On Android the app opens the game's Play Store page and the phone's share sheet (window.HTRLog.rate / .share).
+// In a web browser: a new tab for the store page, and the browser's share sheet or a copied link.
+const STORE_URL='https://play.google.com/store/apps/details?id=com.ashenlantern.holdtheroad';
+function shareText(){const r=roadsDone(),s=SAVE.stars.reduce((a,b)=>a+b,0)+bonusStars();
+  if(r>=20)return 'I held all 20 roads against the dead in Rotmarch: Hold the Road, with '+s+' of 100 stars. Think you can beat that? '+STORE_URL;
+  if(r>0)return 'I’ve held '+r+' of 20 roads against the dead in Rotmarch: Hold the Road. Think you can do better? '+STORE_URL;
+  return 'I’m holding back the walking dead in Rotmarch: Hold the Road. Come and try it! '+STORE_URL;}
+function rateGame(){AU.play('click');
+  try{if(window.HTRLog&&typeof window.HTRLog.rate==='function'){window.HTRLog.rate();return;}}catch(e){}
+  window.open(STORE_URL,'_blank','noopener');}
+function shareGame(){AU.play('click');const t=shareText();
+  try{if(window.HTRLog&&typeof window.HTRLog.share==='function'){window.HTRLog.share(t);return;}}catch(e){}
+  if(navigator.share){navigator.share({title:'Rotmarch: Hold the Road',text:t}).catch(()=>{});return;}
+  try{navigator.clipboard.writeText(t).then(()=>toast('Link copied: paste it to your friends'),()=>toast(STORE_URL));}catch(e){toast(STORE_URL);}}
+(function(){const row=document.querySelector('.mapknobs'),set=$('openSet');if(!row||!set)return;
+  const mk=(id,label,svg,fn)=>{const b=document.createElement('button');b.className='knob big';b.id=id;b.setAttribute('aria-label',label);b.title=label;b.innerHTML=svg;b.onclick=fn;row.insertBefore(b,set);};
+  mk('rateBtn','Rate the game','<svg viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.5 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6-4.4-4.1 6-.7z" fill="currentColor"/></svg>',rateGame);
+  mk('shareBtn','Share with friends','<svg viewBox="0 0 24 24"><path d="M8.2 10.9l7.6-4.2M8.2 13.1l7.6 4.2" stroke="currentColor" stroke-width="2.2"/><circle cx="17.8" cy="5.6" r="2.7" fill="currentColor"/><circle cx="6" cy="12" r="2.7" fill="currentColor"/><circle cx="17.8" cy="18.4" r="2.7" fill="currentColor"/></svg>',shareGame);
+})();
 
 })();
 </script>

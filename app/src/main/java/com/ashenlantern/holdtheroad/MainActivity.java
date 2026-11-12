@@ -125,6 +125,22 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> { picked = true; App.bootOk(MainActivity.this); recreate(); }); }
             /** the game says whether a battle is being played (running, not paused): the screen stays on for it */
             @android.webkit.JavascriptInterface public void playing(boolean on) { runOnUiThread(() -> { inBattle = on; stayAwake(); }); }
+            /** the map's "Rate the game" button: the game's page in the Play Store app (or the browser if there's no Play Store) */
+            @android.webkit.JavascriptInterface public void rate() { runOnUiThread(() -> {
+                try {
+                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + getPackageName())).setPackage("com.android.vending");
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
+                    startActivity(i);
+                } catch (Exception e) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + getPackageName()))); } catch (Exception ignored) { }
+                } }); }
+            /** the map's "Share with friends" button: the phone's share sheet with a line about the player's progress and the store link */
+            @android.webkit.JavascriptInterface public void share(String text) { runOnUiThread(() -> {
+                try {
+                    Intent s = new Intent(Intent.ACTION_SEND).setType("text/plain")
+                            .putExtra(Intent.EXTRA_SUBJECT, "Rotmarch: Hold the Road").putExtra(Intent.EXTRA_TEXT, text);
+                    startActivity(Intent.createChooser(s, "Share Hold the Road"));
+                } catch (Exception ignored) { } }); }
             @android.webkit.JavascriptInterface public void copy(String t) { runOnUiThread(() -> {
                 ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Hold the Road FPS test", t));
