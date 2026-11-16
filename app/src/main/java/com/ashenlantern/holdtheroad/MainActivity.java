@@ -125,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> { picked = true; App.bootOk(MainActivity.this); recreate(); }); }
             /** the game says whether a battle is being played (running, not paused): the screen stays on for it */
             @android.webkit.JavascriptInterface public void playing(boolean on) { runOnUiThread(() -> { inBattle = on; stayAwake(); }); }
+            /** "Leave" in the game's leave confirmation: the same as the back button leaving (the app goes to the background) */
+            @android.webkit.JavascriptInterface public void leave() { runOnUiThread(() -> moveTaskToBack(true)); }
             /** the map's "Rate the game" button: the game's page in the Play Store app (or the browser if there's no Play Store) */
             @android.webkit.JavascriptInterface public void rate() { runOnUiThread(() -> {
                 try {

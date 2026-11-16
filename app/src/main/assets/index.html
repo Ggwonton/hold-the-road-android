@@ -738,6 +738,19 @@ canvas{outline:none}
   #brief .row{position:sticky;bottom:-.85em;z-index:3;margin:.1em -.4em -.85em;padding:.45em .4em .85em;background:linear-gradient(rgba(240,216,164,0),#f0d8a4 30%)}}
 /* narrow (portrait) screens: one column */
 @media (max-width:560px){#brief,#brief.left{grid-template-columns:minmax(0,1fr);gap:.5em}}
+/* How to play, and the leave confirmation (tester feedback) */
+#panelHelp{width:min(92%,calc(var(--u)*760))}
+.helpBody{display:grid;gap:.5em;max-height:calc(var(--u)*430);max-height:min(calc(var(--u)*430),calc(100vh - 9em));overflow-y:auto;padding:.1em .3em .3em;text-align:left;-webkit-overflow-scrolling:touch}
+.helpBody section{background:#f3e2bd;border:3px solid var(--ink);border-radius:.6em;padding:.45em .75em .55em;box-shadow:0 3px 0 rgba(36,22,12,.5)}
+.helpBody h3{margin:0 0 .15em;font-family:var(--display);font-weight:400;font-size:1em;letter-spacing:.02em;color:#a8301e}
+.helpBody p{margin:0;font-family:var(--body);font-size:.82em;line-height:1.35;color:#3a200c}
+.helpBody b{color:#6a2a10}
+#leaveAsk:not([hidden]){z-index:70}
+#leaveAsk .panel{width:min(86%,calc(var(--u)*440));text-align:center}
+#leaveAsk .ltxt{margin:.7em 0 0;font-family:var(--body);color:#3a200c;font-size:.95em}
+#leaveAsk .lrow{display:flex;gap:.8em;justify-content:center;flex-wrap:wrap}
+#leaveAsk .lrow .btn2{min-width:7.5em;margin:0}
+
 </style>
 </head><body>
 
@@ -4868,6 +4881,44 @@ function shareGame(){AU.play('click');const t=shareText();
   mk('rateBtn','Rate the game','<svg viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.5 6 .7-4.4 4.1 1.2 6-5.4-3-5.4 3 1.2-6-4.4-4.1 6-.7z" fill="currentColor"/></svg>',rateGame);
   mk('shareBtn','Share with friends','<svg viewBox="0 0 24 24"><path d="M8.2 10.9l7.6-4.2M8.2 13.1l7.6 4.2" stroke="currentColor" stroke-width="2.2"/><circle cx="17.8" cy="5.6" r="2.7" fill="currentColor"/><circle cx="6" cy="12" r="2.7" fill="currentColor"/><circle cx="17.8" cy="18.4" r="2.7" fill="currentColor"/></svg>',shareGame);
 })();
+
+/* ================= HOW TO PLAY, PRIVACY POLICY AND LEAVING (from the closed-test feedback) ================= */
+const PRIVACY_URL='https://github.com/Ggwonton/hold-the-road-android/blob/main/PRIVACY.md';
+function openLink(u){const a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();}
+const HELP=[
+  ['The road','The dead march along the road to your gate. Each one that gets through costs lives, and losing them all loses the road. Finish with <b>18 or more lives for three stars</b>, 10 or more for two.'],
+  ['Towers','Tap an empty plot to build. The <b>Longbow Tower</b> shoots fast, cheap arrows. The <b>Militia Barracks</b> sends soldiers to block the road. The <b>Chapel</b> fires holy light that ignores armour and slows. The <b>Trebuchet</b> hurls boulders at groups. Tap a tower to upgrade it; at full level pick one of two branches, then raise its rank.'],
+  ['Gold and waves','Every kill pays gold. Between waves, ring the bell early to call the next wave sooner and earn bonus gold.'],
+  ['Spells','You carry two spells, chosen in the Spellbook on the map. Tap a glowing spell, then tap the road. Spells recharge after use, and more unlock as you win roads.'],
+  ['The fallen','Soldiers and the dead leave bodies, and bodies can rise again. Chapels bless them and trebuchet fire burns them.'],
+  ['Stars and the War Council','Stars buy lasting upgrades in the War Council. You can return them and spend them again whenever you like.'],
+  ['Challenges','Win a road to open its <b>Heroic</b>, <b>Iron</b> and <b>Endless</b> challenges. Heroic and Iron each give a bonus star; Endless keeps your best wave.'],
+  ['Tips','Build where the road bends past a plot more than once. Put barracks in front of your towers so the dead are held in range. Save your spells for big groups near the gate.']];
+function openHelp(){let v=$('helpV');
+  if(!v){v=document.createElement('div');v.className='veil';v.id='helpV';
+    v.innerHTML='<div class="panel" id="panelHelp"><h2>How to play</h2><div class="helpBody">'+HELP.map(([h,t])=>'<section><h3>'+h+'</h3><p>'+t+'</p></section>').join('')+'</div><button class="cta" id="helpClose">Got it</button></div>';
+    document.getElementById('bestV').before(v);$('helpClose').onclick=()=>{AU.play('click');v.hidden=true;};}
+  v.hidden=false;const b=v.querySelector('.helpBody');if(b)b.scrollTop=0;}
+(function(){const st=$('storyBtn'),ref=st&&st.closest('.srow');if(!ref)return;
+  const row=(t,sm,label,id,fn)=>{const r=document.createElement('div');r.className='srow';r.innerHTML='<span>'+t+'<small>'+sm+'</small></span><button class="btn2" id="'+id+'">'+label+'</button>';ref.parentNode.insertBefore(r,ref);r.querySelector('button').onclick=fn;};
+  row('How to play','Towers, spells, stars and tips','Read','helpBtn',()=>{AU.play('click');openHelp();});
+  row('Rate the game','Tell us what you think on Google Play','Rate it','rateBtn2',rateGame);
+  row('Share with friends','Send your friends the game','Share','shareBtn2',shareGame);
+  row('Privacy policy','What the game does with your information','Read','privacyBtn',()=>{AU.play('click');openLink(PRIVACY_URL);});})();
+/* the Android back button on the map asks before leaving the game; a second press (or Leave) goes */
+function askLeave(){let v=$('leaveAsk');
+  if(!v){v=document.createElement('div');v.className='veil';v.id='leaveAsk';
+    v.innerHTML='<div class="panel"><h2>Leave the game?</h2><p class="ltxt">Your progress is saved.</p><div class="lrow"><button class="btn2 ghost" id="leaveStay">Stay</button><button class="btn2" id="leaveGo">Leave</button></div></div>';
+    document.getElementById('bestV').before(v);
+    $('leaveStay').onclick=()=>{AU.play('click');v.hidden=true;};
+    $('leaveGo').onclick=()=>{v.hidden=true;try{if(window.HTRLog&&typeof window.HTRLog.leave==='function')window.HTRLog.leave();}catch(e){}};}
+  v.hidden=false;}
+{const _b=window.androidBack;window.androidBack=function(){
+  const h=$('helpV');if(h&&!h.hidden){h.hidden=true;return true;}
+  const la=$('leaveAsk');if(la&&!la.hidden){la.hidden=true;return false;}
+  const r=_b();if(r)return r;
+  if((mode==='map'||mode==='splash')&&!(typeof WIPING!=='undefined'&&WIPING)){askLeave();return true;}
+  return false;};}
 
 })();
 </script>
